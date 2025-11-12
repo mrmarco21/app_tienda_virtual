@@ -1,0 +1,37 @@
+{
+  "name": "tienda-backend",
+  "version": "1.0.0",
+  "description": "Backend para Tienda Virtual Móvil con Node.js, Express, MySQL y Cloudinary",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "tienda",
+    "ecommerce",
+    "mobile",
+    "nodejs",
+    "express",
+    "mysql",
+    "cloudinary"
+  ],
+  "author": "Mrmarco",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "mysql2": "^3.6.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
