@@ -18,13 +18,13 @@
 
 ### Paso 2: Actualizar la IP en el Frontend
 
-Edita el archivo: `app/servicios/api.js`
+Edita el archivo: `app/app.json`
 
 ```javascript
 // Línea 5
-const API_BASE_URL = 'http://192.168.1.100:3000/api';
-//                          ^^^^^^^^^^^^^^
-//                          Cambia esto por tu IP
+"apiUrl": "http://192.168.18.31:3000/api"
+//                ^^^^^^^^^^^^^^
+//              Cambia esto por tu IP
 ```
 
 ### Paso 3: Configurar el Backend
@@ -87,7 +87,7 @@ Esto usa un túnel de Expo para conectar tu celular, pero es más lento.
 
 **Soluciones**:
 1. Verifica que el backend esté corriendo (`npm run dev` en la carpeta backend)
-2. Verifica que la IP en `api.js` sea correcta
+2. Verifica que la IP en `app.json` sea correcta
 3. Verifica que ambos dispositivos estén en la misma red WiFi
 4. Desactiva temporalmente el firewall para probar
 5. Intenta usar `--tunnel` en lugar de LAN

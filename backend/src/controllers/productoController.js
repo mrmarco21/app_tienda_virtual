@@ -46,7 +46,7 @@ export const obtenerProductoPorId = async (req, res) => {
 
 export const crearProducto = async (req, res) => {
   try {
-    const { nombre, categoria, precio, stock, descripcion } = req.body;
+    const { nombre, categoria, precio, stock, descripcion, imagen } = req.body;
     
     // Validación básica
     if (!nombre || !categoria || !precio || stock === undefined) {
@@ -57,10 +57,7 @@ export const crearProducto = async (req, res) => {
     }
 
     // Procesar imagen si se subió
-    let imagenUrl = null;
-    if (req.file) {
-      imagenUrl = req.file.path; // URL de Cloudinary
-    }
+    let imagenUrl = imagen || null;
 
     const query = `
       INSERT INTO productos (nombre, categoria, precio, stock, descripcion, imagen) 
@@ -97,7 +94,7 @@ export const crearProducto = async (req, res) => {
 export const actualizarProducto = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, categoria, precio, stock, descripcion } = req.body;
+    const { nombre, categoria, precio, stock, descripcion, imagen } = req.body;
     
     // Verificar si el producto existe
     const [productoExistente] = await pool.query('SELECT * FROM productos WHERE id = ?', [id]);
@@ -109,10 +106,7 @@ export const actualizarProducto = async (req, res) => {
     }
 
     // Procesar nueva imagen si se subió
-    let imagenUrl = productoExistente[0].imagen;
-    if (req.file) {
-      imagenUrl = req.file.path; // URL de Cloudinary
-    }
+    let imagenUrl = imagen || productoExistente[0].imagen;
 
     const query = `
       UPDATE productos 

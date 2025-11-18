@@ -1,20 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
-    TextInput,
     TouchableOpacity,
     StyleSheet,
     ScrollView,
     Alert,
-    ActivityIndicator
+    Platform,
+    KeyboardAvoidingView,
+    BackHandler,
 } from 'react-native';
-import { crearProducto, actualizarProducto } from '../../servicios/api';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { crearProducto, actualizarProducto, obtenerCategorias } from '../../servicios/api';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+// Importar componentes
+import ToastNotification from '../../componentes/ToastNotification';
+import SeccionImagen from '../../componentes/SeccionImagen';
+import SeccionInformacion from '../../componentes/SeccionInformacion';
+import ModalCategorias from '../../componentes/ModalCategorias';
+import BotonesAccion from '../../componentes/BotonesAccion';
+
+// Obtener la URL base de la API
+const getApiBaseUrl = () => {
+    const port = 3000;
+    if (Platform.OS === 'android') return `http://10.0.2.2:${port}/api`;
+    return `http://localhost:${port}/api`;
+};
+
+const API_BASE_URL = Constants?.expoConfig?.extra?.apiUrl || getApiBaseUrl();
 
 const FormularioProducto = ({ navigation, route }) => {
     const producto = route.params?.producto;
     const esEdicion = !!producto;
 
+    // Estados del formulario
     const [datos, setDatos] = useState({
         nombre: producto?.nombre || '',
         categoria: producto?.categoria || '',
@@ -23,11 +46,260 @@ const FormularioProducto = ({ navigation, route }) => {
         descripcion: producto?.descripcion || '',
         imagen: producto?.imagen || '',
     });
-    const [cargando, setCargando] = useState(false);
 
+    const [imagenLocal, setImagenLocal] = useState(null);
+    const [cargando, setCargando] = useState(false);
+    const [subiendoImagen, setSubiendoImagen] = useState(false);
+    const [mostrarModalCategorias, setMostrarModalCategorias] = useState(false);
+    const [categoriasBD, setCategoriasBD] = useState([]);
+
+    // Estado para Toast
+    const [toast, setToast] = useState({
+        visible: false,
+        message: '',
+        type: 'success',
+    });
+
+    // Cargar categorías de la BD al montar el componente
+    useEffect(() => {
+        cargarCategorias();
+    }, []);
+
+    const cargarCategorias = async () => {
+        try {
+            const res = await obtenerCategorias();
+            // Normalizar la respuesta
+            let categorias = [];
+            if (res?.data?.data) {
+                categorias = Array.isArray(res.data.data) ? res.data.data : [];
+            } else if (res?.data) {
+                categorias = Array.isArray(res.data) ? res.data : [];
+            } else if (Array.isArray(res)) {
+                categorias = res;
+            }
+
+            // Asegurar que las categorías estén en el formato correcto
+            const categoriasFormateadas = categorias.map(cat => {
+                if (typeof cat === 'string') {
+                    return { categoria: cat };
+                }
+                return cat;
+            });
+
+            setCategoriasBD(categoriasFormateadas);
+        } catch (error) {
+            console.error('Error al cargar categorías:', error);
+            // No mostrar error al usuario, simplemente no habrá categorías de BD
+        }
+    };
+
+    // Manejar el botón de retroceso físico (sin conflictos con navegación principal)
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // Si hay cambios sin guardar, mostrar confirmación
+            const hayCambios = datos.nombre || datos.precio || datos.stock || datos.categoria;
+
+            if (hayCambios) {
+                Alert.alert(
+                    'Descartar cambios',
+                    '¿Estás seguro de salir? Los cambios no guardados se perderán.',
+                    [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                            text: 'Salir',
+                            onPress: () => navigation.goBack(),
+                            style: 'destructive'
+                        },
+                    ]
+                );
+                return true; // Previene la acción por defecto
+            }
+
+            // Si no hay cambios, permitir retroceder normalmente
+            return false; // Permite que la navegación principal maneje el retroceso
+        });
+
+        return () => backHandler.remove();
+    }, [datos, navigation]);
+
+    // Función para mostrar Toast
+    const showToast = (message, type = 'success') => {
+        setToast({ visible: true, message, type });
+    };
+
+    const hideToast = () => {
+        setToast({ ...toast, visible: false });
+    };
+
+    // Seleccionar imagen de la galería
+    const seleccionarImagen = async () => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (status !== 'granted') {
+                showToast('Necesitamos permisos para acceder a tus fotos', 'error');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled) {
+                setImagenLocal(result.assets[0].uri);
+                await subirImagenCloudinary(result.assets[0].uri);
+            }
+        } catch (error) {
+            showToast('No se pudo seleccionar la imagen', 'error');
+        }
+    };
+
+    // Tomar foto con la cámara
+    const tomarFoto = async () => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
+            if (status !== 'granted') {
+                showToast('Necesitamos permisos para usar la cámara', 'error');
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled) {
+                setImagenLocal(result.assets[0].uri);
+                await subirImagenCloudinary(result.assets[0].uri);
+            }
+        } catch (error) {
+            showToast('No se pudo tomar la foto', 'error');
+        }
+    };
+
+    // Subir imagen a Cloudinary
+    const subirImagenCloudinary = async (uri) => {
+        setSubiendoImagen(true);
+        try {
+            const formData = new FormData();
+
+            const filename = uri.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+            formData.append('imagen', {
+                uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+                name: filename,
+                type: type,
+            });
+
+            const token = await AsyncStorage.getItem('token');
+
+            const response = await axios.post(
+                `${API_BASE_URL}/upload-imagen`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        ...(token && { Authorization: `Bearer ${token}` }),
+                    },
+                    timeout: 30000,
+                }
+            );
+
+            const data = response.data;
+
+            if (data.success && (data.url || data.secure_url)) {
+                const imageUrl = data.url || data.secure_url;
+                setDatos({ ...datos, imagen: imageUrl });
+                showToast('Imagen subida correctamente', 'success');
+            } else {
+                throw new Error(data.message || 'No se recibió la URL de la imagen');
+            }
+        } catch (error) {
+            console.error('Error al subir imagen:', error);
+
+            let errorMessage = 'No se pudo subir la imagen';
+
+            if (error.response) {
+                errorMessage = error.response.data?.message || errorMessage;
+            } else if (error.request) {
+                errorMessage = 'No se pudo conectar con el servidor';
+            }
+
+            showToast(errorMessage, 'error');
+            setImagenLocal(null);
+        } finally {
+            setSubiendoImagen(false);
+        }
+    };
+
+    // Mostrar opciones de imagen
+    const mostrarOpcionesImagen = () => {
+        Alert.alert('Seleccionar Imagen', 'Elige una opción', [
+            {
+                text: 'Tomar Foto',
+                onPress: tomarFoto,
+            },
+            {
+                text: 'Desde Galería',
+                onPress: seleccionarImagen,
+            },
+            {
+                text: 'Ingresar URL',
+                onPress: () => {
+                    Alert.prompt(
+                        'URL de Imagen',
+                        'Ingresa la URL de la imagen',
+                        [
+                            { text: 'Cancelar', style: 'cancel' },
+                            {
+                                text: 'Guardar',
+                                onPress: (url) => {
+                                    if (url) {
+                                        setDatos({ ...datos, imagen: url });
+                                        setImagenLocal(url);
+                                    }
+                                },
+                            },
+                        ],
+                        'plain-text',
+                        datos.imagen
+                    );
+                },
+            },
+            {
+                text: 'Cancelar',
+                style: 'cancel',
+            },
+        ]);
+    };
+
+    // Guardar producto
     const handleGuardar = async () => {
+        // Validaciones
         if (!datos.nombre || !datos.categoria || !datos.precio || !datos.stock) {
-            Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
+            showToast('Por favor completa todos los campos obligatorios', 'error');
+            return;
+        }
+
+        if (!datos.imagen) {
+            showToast('Por favor agrega una imagen del producto', 'error');
+            return;
+        }
+
+        if (isNaN(datos.precio) || parseFloat(datos.precio) <= 0) {
+            showToast('El precio debe ser un número válido mayor a 0', 'error');
+            return;
+        }
+
+        if (isNaN(datos.stock) || parseInt(datos.stock) < 0) {
+            showToast('El stock debe ser un número válido', 'error');
             return;
         }
 
@@ -41,134 +313,150 @@ const FormularioProducto = ({ navigation, route }) => {
 
             if (esEdicion) {
                 await actualizarProducto(producto.id, productoData);
-                Alert.alert('Éxito', 'Producto actualizado');
+                showToast('Producto actualizado correctamente', 'success');
             } else {
                 await crearProducto(productoData);
-                Alert.alert('Éxito', 'Producto creado');
+                showToast('Producto creado correctamente', 'success');
             }
 
-            navigation.goBack();
+            // Esperar para que el usuario vea el toast antes de navegar
+            setTimeout(() => {
+                navigation.goBack();
+            }, 1500);
         } catch (error) {
-            Alert.alert('Error', error.message);
+            showToast(error.message || 'No se pudo guardar el producto', 'error');
         } finally {
             setCargando(false);
         }
     };
 
     return (
-        <ScrollView style={styles.container}>
-            <View style={styles.formulario}>
-                <Text style={styles.label}>Nombre *</Text>
-                <TextInput
-                    style={styles.input}
-                    value={datos.nombre}
-                    onChangeText={(text) => setDatos({ ...datos, nombre: text })}
-                    placeholder="Ej: Smartphone Samsung"
-                />
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+        >
+            {/* Toast Notification */}
+            <ToastNotification
+                visible={toast.visible}
+                message={toast.message}
+                type={toast.type}
+                onHide={hideToast}
+            />
 
-                <Text style={styles.label}>Categoría *</Text>
-                <TextInput
-                    style={styles.input}
-                    value={datos.categoria}
-                    onChangeText={(text) => setDatos({ ...datos, categoria: text })}
-                    placeholder="Ej: Electrónica"
-                />
-
-                <Text style={styles.label}>Precio (S/) *</Text>
-                <TextInput
-                    style={styles.input}
-                    value={datos.precio}
-                    onChangeText={(text) => setDatos({ ...datos, precio: text })}
-                    placeholder="Ej: 899.99"
-                    keyboardType="decimal-pad"
-                />
-
-                <Text style={styles.label}>Stock *</Text>
-                <TextInput
-                    style={styles.input}
-                    value={datos.stock}
-                    onChangeText={(text) => setDatos({ ...datos, stock: text })}
-                    placeholder="Ej: 25"
-                    keyboardType="number-pad"
-                />
-
-                <Text style={styles.label}>Descripción</Text>
-                <TextInput
-                    style={[styles.input, styles.textArea]}
-                    value={datos.descripcion}
-                    onChangeText={(text) => setDatos({ ...datos, descripcion: text })}
-                    placeholder="Descripción del producto"
-                    multiline
-                    numberOfLines={4}
-                />
-
-                <Text style={styles.label}>URL de Imagen</Text>
-                <TextInput
-                    style={styles.input}
-                    value={datos.imagen}
-                    onChangeText={(text) => setDatos({ ...datos, imagen: text })}
-                    placeholder="https://ejemplo.com/imagen.jpg"
-                />
-
+            {/* Header */}
+            <View style={styles.header}>
                 <TouchableOpacity
-                    style={[styles.boton, cargando && styles.botonDeshabilitado]}
-                    onPress={handleGuardar}
-                    disabled={cargando}
+                    onPress={() => navigation.goBack()}
+                    style={styles.backButton}
+                    activeOpacity={0.7}
                 >
-                    {cargando ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.textoBoton}>
-                            {esEdicion ? 'Actualizar' : 'Crear'} Producto
-                        </Text>
-                    )}
+                    <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
+                <View style={styles.headerTitleContainer}>
+                    <Text style={styles.headerTitle}>
+                        {esEdicion ? 'Editar' : 'Nuevo'} Producto
+                    </Text>
+                    <Text style={styles.headerSubtitle}>
+                        {esEdicion ? 'Actualiza la información' : 'Completa los datos'}
+                    </Text>
+                </View>
+                <View style={{ width: 40 }} />
             </View>
-        </ScrollView>
+
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {/* Sección de Imagen */}
+                <SeccionImagen
+                    imagenLocal={imagenLocal}
+                    imagenUrl={datos.imagen}
+                    subiendoImagen={subiendoImagen}
+                    onPressMostrarOpciones={mostrarOpcionesImagen}
+                />
+
+                {/* Sección de Información */}
+                <SeccionInformacion
+                    datos={datos}
+                    setDatos={setDatos}
+                    onAbrirModalCategorias={() => setMostrarModalCategorias(true)}
+                />
+
+                {/* Botones de Acción */}
+                <BotonesAccion
+                    esEdicion={esEdicion}
+                    cargando={cargando}
+                    subiendoImagen={subiendoImagen}
+                    onCancelar={() => navigation.goBack()}
+                    onGuardar={handleGuardar}
+                />
+
+                <View style={{ height: 40 }} />
+            </ScrollView>
+
+            {/* Modal de Categorías */}
+            <ModalCategorias
+                visible={mostrarModalCategorias}
+                categoriaSeleccionada={datos.categoria}
+                categoriasBD={categoriasBD}
+                onSeleccionar={(categoria) => setDatos({ ...datos, categoria })}
+                onCerrar={() => setMostrarModalCategorias(false)}
+                onToast={showToast}
+            />
+        </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#F8F9FA',
     },
-    formulario: {
-        padding: 20,
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 8,
-        marginTop: 15,
-    },
-    input: {
-        backgroundColor: '#fff',
-        padding: 15,
-        borderRadius: 10,
-        fontSize: 16,
-        borderWidth: 1,
-        borderColor: '#ddd',
-    },
-    textArea: {
-        height: 100,
-        textAlignVertical: 'top',
-    },
-    boton: {
-        backgroundColor: '#4CAF50',
-        padding: 15,
-        borderRadius: 10,
+    header: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 30,
+        justifyContent: 'space-between',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingTop: 50,
+        paddingBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    botonDeshabilitado: {
-        backgroundColor: '#ccc',
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    textoBoton: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
+    headerTitleContainer: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1A1A1A',
+    },
+    headerSubtitle: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: 16,
+        paddingTop: 20,
     },
 });
 

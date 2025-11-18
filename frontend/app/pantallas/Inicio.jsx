@@ -1,20 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    View, 
-    Text, 
-    FlatList, 
-    StyleSheet, 
-    ActivityIndicator, 
-    TextInput, 
-    TouchableOpacity, 
+import {
+    View,
+    Text,
+    FlatList,
+    StyleSheet,
+    ActivityIndicator,
+    TextInput,
+    TouchableOpacity,
     Alert,
     ScrollView,
-    Dimensions 
+    Dimensions
 } from 'react-native';
 import { obtenerProductos, obtenerCategorias, buscarProductos } from '../servicios/api';
 import TarjetaProducto from '../componentes/TarjetaProducto';
+import { Ionicons } from '@expo/vector-icons';
+import { useCarrito } from '../contexto/CarritoContext'; // IMPORTAR useCarrito
 
 const { width } = Dimensions.get('window');
+
+// Mapeo de categorías a iconos actualizado
+const ICONOS_CATEGORIAS = {
+    'Smartphones': 'phone-portrait-outline',
+    'Laptops': 'laptop-outline',
+    'Computadoras': 'desktop-outline',
+    'Tablets': 'tablet-portrait-outline',
+    'Televisores y monitores': 'tv-outline',
+    'Gaming': 'game-controller-outline',
+    'Audio': 'headset-outline',
+    'Cámaras y fotografía': 'camera-outline',
+    'Wearables': 'watch-outline',
+    'Accesorios': 'construct-outline',
+    'Almacenamiento': 'save-outline',
+    'Redes': 'wifi-outline',
+    'Impresoras y escáneres': 'print-outline',
+    'Componentes de PC': 'hardware-chip-outline',
+    'Electrónica': 'cube-outline',
+    'Software': 'code-slash-outline',
+    'default': 'pricetag-outline'
+};
 
 const Inicio = ({ navigation }) => {
     const [productos, setProductos] = useState([]);
@@ -23,6 +46,10 @@ const Inicio = ({ navigation }) => {
     const [busqueda, setBusqueda] = useState('');
     const [cargando, setCargando] = useState(true);
     const [refrescando, setRefrescando] = useState(false);
+
+    // OBTENER CANTIDAD DE PRODUCTOS EN EL CARRITO
+    const { carrito } = useCarrito();
+    const cantidadCarrito = carrito.length;
 
     useEffect(() => {
         cargarDatos();
@@ -50,13 +77,13 @@ const Inicio = ({ navigation }) => {
             // Cargar productos
             const resProductos = await obtenerProductos();
             const productosNormalizados = normalizarRespuesta(resProductos);
-            console.log('Productos cargados:', productosNormalizados.length);
+            console.log('📦 Productos cargados:', productosNormalizados.length);
             setProductos(productosNormalizados);
 
-            // Cargar categorías
+            // Cargar categorías desde la API (solo las que existen en productos)
             const resCategorias = await obtenerCategorias();
             const categoriasNormalizadas = normalizarRespuesta(resCategorias);
-            
+
             // Asegurar que las categorías estén en el formato correcto
             const categoriasFormateadas = categoriasNormalizadas.map(cat => {
                 if (typeof cat === 'string') {
@@ -64,14 +91,14 @@ const Inicio = ({ navigation }) => {
                 }
                 return cat;
             });
-            
-            console.log('Categorías cargadas:', categoriasFormateadas);
+
+            console.log('🏷️ Categorías disponibles:', categoriasFormateadas);
             setCategorias(categoriasFormateadas);
 
         } catch (error) {
-            console.error('Error al cargar datos:', error);
+            console.error('❌ Error al cargar datos:', error);
             Alert.alert(
-                'Error de conexión', 
+                'Error de conexión',
                 `No se pudo conectar al servidor.\n${error.message}`,
                 [
                     { text: 'Reintentar', onPress: cargarDatos },
@@ -96,10 +123,10 @@ const Inicio = ({ navigation }) => {
             setCargando(true);
             const res = await buscarProductos(busqueda.trim(), categoriaSeleccionada);
             const productosNormalizados = normalizarRespuesta(res);
-            console.log('Resultados búsqueda:', productosNormalizados.length);
+            console.log('🔍 Resultados búsqueda:', productosNormalizados.length);
             setProductos(productosNormalizados);
         } catch (error) {
-            console.error('Error al buscar:', error);
+            console.error('❌ Error al buscar:', error);
             Alert.alert('Error', 'Error al buscar productos');
         } finally {
             setCargando(false);
@@ -108,9 +135,8 @@ const Inicio = ({ navigation }) => {
 
     const filtrarPorCategoria = async (categoria) => {
         setCategoriaSeleccionada(categoria);
-        
+
         if (!categoria) {
-            // Si no hay categoría, cargar todos los productos
             cargarDatos();
             return;
         }
@@ -119,10 +145,10 @@ const Inicio = ({ navigation }) => {
             setCargando(true);
             const res = await buscarProductos('', categoria);
             const productosNormalizados = normalizarRespuesta(res);
-            console.log(`Productos de categoría "${categoria}":`, productosNormalizados.length);
+            console.log(`📂 Productos de categoría "${categoria}":`, productosNormalizados.length);
             setProductos(productosNormalizados);
         } catch (error) {
-            console.error('Error al filtrar por categoría:', error);
+            console.error('❌ Error al filtrar por categoría:', error);
             Alert.alert('Error', 'Error al filtrar productos');
         } finally {
             setCargando(false);
@@ -140,10 +166,15 @@ const Inicio = ({ navigation }) => {
         limpiarFiltros();
     };
 
+    // Obtener icono para la categoría
+    const obtenerIconoCategoria = (categoria) => {
+        return ICONOS_CATEGORIAS[categoria] || ICONOS_CATEGORIAS['default'];
+    };
+
     if (cargando && productos.length === 0) {
         return (
             <View style={styles.centrado}>
-                <ActivityIndicator size="large" color="#FF6B6B" />
+                <ActivityIndicator size="large" color="#3B82F6" />
                 <Text style={styles.textoCargando}>Cargando productos...</Text>
             </View>
         );
@@ -153,70 +184,111 @@ const Inicio = ({ navigation }) => {
         <View style={styles.container}>
             {/* Header con búsqueda */}
             <View style={styles.header}>
-                <Text style={styles.titulo}>🛒 Tienda Virtual</Text>
+                <View style={styles.headerTop}>
+                    <View>
+                        <Text style={styles.titulo}>ElectroStore App</Text>
+                        <Text style={styles.subtitulo}>Encuentra los mejores productos</Text>
+                    </View>
+
+                    {/* BOTÓN DE CARRITO CON CONTADOR */}
+                    <TouchableOpacity
+                        style={styles.cartButton}
+                        onPress={() => navigation.navigate('Carrito')}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="cart-outline" size={28} color="#1A1A1A" />
+
+                        {/* BADGE CONTADOR - Solo se muestra si hay productos */}
+                        {cantidadCarrito > 0 && (
+                            <View style={styles.cartBadge}>
+                                <Text style={styles.cartBadgeText}>
+                                    {cantidadCarrito > 99 ? '99+' : cantidadCarrito}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.busquedaContainer}>
-                    <Text style={styles.iconoBusqueda}>🔍</Text>
+                    <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.iconoBusqueda} />
                     <TextInput
                         style={styles.input}
                         placeholder="Buscar productos..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor="#9CA3AF"
                         value={busqueda}
                         onChangeText={setBusqueda}
                         onSubmitEditing={buscar}
                         returnKeyType="search"
                     />
                     {busqueda.length > 0 && (
-                        <TouchableOpacity onPress={() => {
-                            setBusqueda('');
-                            if (!categoriaSeleccionada) cargarDatos();
-                        }}>
-                            <Text style={styles.iconoCerrar}>✕</Text>
+                        <TouchableOpacity
+                            onPress={() => {
+                                setBusqueda('');
+                                if (!categoriaSeleccionada) cargarDatos();
+                            }}
+                            style={styles.clearButton}
+                        >
+                            <Ionicons name="close-circle" size={20} color="#9CA3AF" />
                         </TouchableOpacity>
                     )}
                 </View>
             </View>
 
             {/* Filtros de categorías */}
-            <View style={styles.categoriasWrapper}>
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoriasContainer}
-                >
-                    <TouchableOpacity
-                        style={[
-                            styles.categoriaChip, 
-                            !categoriaSeleccionada && styles.categoriaActiva
-                        ]}
-                        onPress={limpiarFiltros}
+            {categorias.length > 0 && (
+                <View style={styles.categoriasWrapper}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.categoriasContainer}
                     >
-                        <Text style={[
-                            styles.categoriaTexto,
-                            !categoriaSeleccionada && styles.categoriaTextoActiva
-                        ]}>
-                            📦 Todas
-                        </Text>
-                    </TouchableOpacity>
-                    
-                    {categorias.map((cat, index) => (
                         <TouchableOpacity
-                            key={cat.categoria || index}
                             style={[
-                                styles.categoriaChip, 
-                                categoriaSeleccionada === cat.categoria && styles.categoriaActiva
+                                styles.categoriaChip,
+                                !categoriaSeleccionada && styles.categoriaActiva
                             ]}
-                            onPress={() => filtrarPorCategoria(cat.categoria)}
+                            onPress={limpiarFiltros}
+                            activeOpacity={0.7}
                         >
+                            <Ionicons
+                                name="apps"
+                                size={18}
+                                color={!categoriaSeleccionada ? '#FFFFFF' : '#6B7280'}
+                            />
                             <Text style={[
                                 styles.categoriaTexto,
-                                categoriaSeleccionada === cat.categoria && styles.categoriaTextoActiva
+                                !categoriaSeleccionada && styles.categoriaTextoActiva
                             ]}>
-                                {cat.categoria}
+                                Todas
                             </Text>
                         </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
+
+                        {categorias.map((cat, index) => (
+                            <TouchableOpacity
+                                key={cat.categoria || index}
+                                style={[
+                                    styles.categoriaChip,
+                                    categoriaSeleccionada === cat.categoria && styles.categoriaActiva
+                                ]}
+                                onPress={() => filtrarPorCategoria(cat.categoria)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons
+                                    name={obtenerIconoCategoria(cat.categoria)}
+                                    size={18}
+                                    color={categoriaSeleccionada === cat.categoria ? '#FFFFFF' : '#6B7280'}
+                                />
+                                <Text style={[
+                                    styles.categoriaTexto,
+                                    categoriaSeleccionada === cat.categoria && styles.categoriaTextoActiva
+                                ]}>
+                                    {cat.categoria}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
 
             {/* Contador de productos */}
             <View style={styles.contadorContainer}>
@@ -225,8 +297,11 @@ const Inicio = ({ navigation }) => {
                     {categoriaSeleccionada && ` en ${categoriaSeleccionada}`}
                 </Text>
                 {(busqueda || categoriaSeleccionada) && (
-                    <TouchableOpacity onPress={limpiarFiltros}>
-                        <Text style={styles.limpiarTexto}>Limpiar filtros</Text>
+                    <TouchableOpacity onPress={limpiarFiltros} activeOpacity={0.7}>
+                        <View style={styles.limpiarButton}>
+                            <Ionicons name="refresh" size={14} color="#3B82F6" />
+                            <Text style={styles.limpiarTexto}>Limpiar</Text>
+                        </View>
                     </TouchableOpacity>
                 )}
             </View>
@@ -247,10 +322,22 @@ const Inicio = ({ navigation }) => {
                 onRefresh={refrescar}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyIcon}>🛍️</Text>
+                        <View style={styles.emptyIconContainer}>
+                            <Ionicons name="search-outline" size={64} color="#D1D5DB" />
+                        </View>
                         <Text style={styles.textoVacio}>No se encontraron productos</Text>
+                        <Text style={styles.textoVacioSubtitulo}>
+                            {(busqueda || categoriaSeleccionada)
+                                ? 'Intenta con otros términos de búsqueda'
+                                : 'No hay productos disponibles en este momento'}
+                        </Text>
                         {(busqueda || categoriaSeleccionada) && (
-                            <TouchableOpacity style={styles.botonVerTodos} onPress={limpiarFiltros}>
+                            <TouchableOpacity
+                                style={styles.botonVerTodos}
+                                onPress={limpiarFiltros}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="refresh" size={20} color="#FFFFFF" />
                                 <Text style={styles.textoBotonVerTodos}>Ver todos los productos</Text>
                             </TouchableOpacity>
                         )}
@@ -258,8 +345,8 @@ const Inicio = ({ navigation }) => {
                 }
                 ListFooterComponent={
                     cargando && productos.length > 0 ? (
-                        <ActivityIndicator size="small" color="#FF6B6B" style={styles.footerLoader} />
-                    ) : null
+                        <ActivityIndicator size="small" color="#3B82F6" style={styles.footerLoader} />
+                    ) : <View style={{ height: 20 }} />
                 }
             />
         </View>
@@ -269,142 +356,198 @@ const Inicio = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8F9FA',
-    },
-    centrado: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F8F9FA',
-    },
-    textoCargando: {
-        marginTop: 12,
-        fontSize: 16,
-        color: '#666',
+        backgroundColor: '#F9FAFB',
     },
     header: {
-        backgroundColor: '#FFF',
-        paddingTop: 12,
+        backgroundColor: '#FFFFFF',
+        paddingTop: 40,
         paddingHorizontal: 16,
         paddingBottom: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 3,
+        shadowRadius: 8,
         elevation: 3,
     },
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
     titulo: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#2C3E50',
-        marginBottom: 12,
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#1A1A1A',
+    },
+    subtitulo: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    cartButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#F3F4F6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative', // Para posicionar el badge
+    },
+    // ESTILOS DEL BADGE
+    cartBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#3B82F6',
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    cartBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '700',
     },
     busquedaContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F5F6F7',
+        backgroundColor: '#F3F4F6',
         borderRadius: 12,
         paddingHorizontal: 12,
-        height: 48,
     },
     iconoBusqueda: {
-        fontSize: 20,
         marginRight: 8,
-    },
-    iconoCerrar: {
-        fontSize: 20,
-        color: '#999',
-        paddingHorizontal: 5,
     },
     input: {
         flex: 1,
         fontSize: 15,
-        color: '#2C3E50',
-        paddingVertical: 0,
+        color: '#1A1A1A',
+        paddingVertical: 10,
+    },
+    clearButton: {
+        padding: 4,
     },
     categoriasWrapper: {
-        backgroundColor: '#FFF',
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        borderBottomColor: '#F3F4F6',
     },
     categoriasContainer: {
-        paddingHorizontal: 12,
-        paddingVertical: 12,
+        paddingHorizontal: 16,
+        gap: 4,
     },
     categoriaChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
         borderRadius: 20,
-        backgroundColor: '#F5F6F7',
+        backgroundColor: '#F3F4F6',
         marginRight: 8,
-        borderWidth: 1,
-        borderColor: 'transparent',
+        gap: 6,
     },
     categoriaActiva: {
-        backgroundColor: '#FF6B6B',
-        borderColor: '#FF6B6B',
+        backgroundColor: '#3B82F6',
     },
     categoriaTexto: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
-        color: '#666',
+        color: '#6B7280',
     },
     categoriaTextoActiva: {
-        color: '#FFF',
+        color: '#FFFFFF',
     },
     contadorContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#FFF',
+        paddingVertical: 7,
+        backgroundColor: '#FFFFFF',
     },
     contadorTexto: {
-        fontSize: 14,
-        color: '#666',
-        fontWeight: '500',
+        fontSize: 10,
+        color: '#6B7280',
+        fontWeight: '600',
+    },
+    limpiarButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     limpiarTexto: {
-        fontSize: 14,
-        color: '#FF6B6B',
+        fontSize: 12,
+        color: '#3B82F6',
         fontWeight: '600',
     },
     lista: {
-        padding: 8,
+        paddingHorizontal: 8,
+        paddingTop: 8,
+    },
+    centrado: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+    },
+    textoCargando: {
+        marginTop: 16,
+        fontSize: 16,
+        color: '#6B7280',
+        fontWeight: '600',
     },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 60,
+        paddingVertical: 80,
+        paddingHorizontal: 30,
     },
-    emptyIcon: {
-        fontSize: 80,
-        marginBottom: 16,
+    emptyIconContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#F3F4F6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
     },
     textoVacio: {
         fontSize: 18,
-        color: '#999',
-        marginTop: 8,
-        fontWeight: '500',
+        fontWeight: '700',
+        color: '#1A1A1A',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    textoVacioSubtitulo: {
+        fontSize: 14,
+        color: '#9CA3AF',
+        textAlign: 'center',
+        marginBottom: 24,
     },
     botonVerTodos: {
-        marginTop: 20,
-        backgroundColor: '#FF6B6B',
-        paddingHorizontal: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#3B82F6',
         paddingVertical: 12,
-        borderRadius: 8,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+        gap: 8,
     },
     textoBotonVerTodos: {
-        color: '#FFF',
+        color: '#FFFFFF',
         fontSize: 15,
         fontWeight: '600',
     },
     footerLoader: {
-        paddingVertical: 20,
+        marginVertical: 20,
     },
 });
 

@@ -1,9 +1,15 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-// Cambia esta IP por la IP de tu computadora en la red local
-// Para encontrarla: ipconfig (Windows) o ifconfig (Mac/Linux)
-const API_BASE_URL = 'http://192.168.18.31:3000/api';
+const getDefaultBaseUrl = () => {
+  const port = 3000;
+  if (Platform.OS === 'android') return `http://10.0.2.2:${port}/api`;
+  return `http://localhost:${port}/api`;
+};
+
+const API_BASE_URL = (Constants?.expoConfig?.extra?.apiUrl) || getDefaultBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -112,6 +118,28 @@ export const registrarUsuario = async (data) => {
 
 export const loginUsuario = async (data) => {
   return api.post('/usuarios/login', data);
+};
+
+// Subir imagen
+export const subirImagen = async (imageUri) => {
+  const formData = new FormData();
+  
+  const filename = imageUri.split('/').pop();
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+  formData.append('imagen', {
+    uri: Platform.OS === 'ios' ? imageUri.replace('file://', '') : imageUri,
+    name: filename,
+    type: type,
+  });
+
+  return axios.post(`${API_BASE_URL}/upload-imagen`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 30000, // 30 segundos para subida de imágenes
+  });
 };
 
 export default api;

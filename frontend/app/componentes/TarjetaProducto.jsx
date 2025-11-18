@@ -3,99 +3,96 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'rea
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 32) / 2; // 2 columnas con padding
+const CARD_WIDTH = (width - 32) / 2;
 
 const TarjetaProducto = ({ producto, onPress }) => {
     const stockBajo = producto.stock < 10;
     const sinStock = producto.stock === 0;
 
     return (
-        <TouchableOpacity 
-            style={styles.card} 
+        <TouchableOpacity
+            style={[styles.card, sinStock && styles.cardDeshabilitada]}
             onPress={onPress}
             activeOpacity={0.7}
             disabled={sinStock}
         >
-            {/* Contenedor de imagen */}
+            {/* Contenedor de imagen mejorado */}
             <View style={styles.imagenContainer}>
                 <Image
-                    source={{ 
-                        uri: producto.imagen || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Sin+Imagen' 
+                    source={{
+                        uri: producto.imagen || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Sin+Imagen'
                     }}
-                    style={styles.imagen}
+                    style={[styles.imagen, sinStock && styles.imagenDeshabilitada]}
                     resizeMode="cover"
                 />
-                
-                {/* Badge de stock */}
+
+                {/* Badge optimizado */}
                 {sinStock && (
                     <View style={[styles.badge, styles.badgeSinStock]}>
+                        <Icon name="close-circle" size={12} color="#FFF" style={styles.badgeIcon} />
                         <Text style={styles.badgeTexto}>Agotado</Text>
                     </View>
                 )}
                 {!sinStock && stockBajo && (
                     <View style={[styles.badge, styles.badgeStockBajo]}>
-                        <Text style={styles.badgeTexto}>¡Últimas unidades!</Text>
+                        <Icon name="alert-circle" size={12} color="#FFF" style={styles.badgeIcon} />
+                        <Text style={styles.badgeTexto}>¡Últimas!</Text>
                     </View>
                 )}
+
+                {/* Overlay de gradiente sutil */}
+                <View style={styles.gradienteImagen} />
             </View>
 
-            {/* Información del producto */}
+            {/* Información del producto con mejor estructura */}
             <View style={styles.info}>
-                {/* Categoría */}
+                {/* Categoría con nuevo diseño */}
                 <View style={styles.categoriaContainer}>
+                    <View style={styles.categoriaDot} />
                     <Text style={styles.categoria} numberOfLines={1}>
                         {producto.categoria}
                     </Text>
                 </View>
 
-                {/* Nombre */}
+                {/* Nombre con mejor espaciado */}
                 <Text style={styles.nombre} numberOfLines={2}>
                     {producto.nombre}
                 </Text>
 
-                {/* Footer con precio y stock */}
-                <View style={styles.footer}>
-                    <View style={styles.precioContainer}>
-                        <Text style={styles.simboloMoneda}>S/</Text>
-                        <Text style={styles.precio}>
-                            {parseFloat(producto.precio).toFixed(2)}
-                        </Text>
-                    </View>
-                    
-                    <View style={styles.stockContainer}>
-                        <Icon 
-                            name={sinStock ? "close-circle" : "checkmark-circle"} 
-                            size={14} 
-                            color={sinStock ? "#E74C3C" : "#27AE60"} 
-                        />
-                        <Text style={[
-                            styles.stock,
-                            sinStock && styles.stockAgotado
-                        ]}>
-                            {sinStock ? '0' : producto.stock}
-                        </Text>
-                    </View>
+                {/* Precio destacado */}
+                <View style={styles.precioContainer}>
+                    <Text style={styles.simboloMoneda}>S/</Text>
+                    <Text style={styles.precio}>
+                        {parseFloat(producto.precio).toFixed(2)}
+                    </Text>
                 </View>
 
-                {/* Botón de acción */}
-                <TouchableOpacity 
-                    style={[
-                        styles.botonComprar,
-                        sinStock && styles.botonDeshabilitado
-                    ]}
-                    onPress={onPress}
-                    disabled={sinStock}
-                >
-                    <Icon 
-                        name={sinStock ? "sad-outline" : "cart-outline"} 
-                        size={16} 
-                        color="#FFF" 
-                        style={styles.iconoBoton}
+                {/* Stock inline mejorado */}
+                <View style={styles.stockRow}>
+                    <Icon
+                        name={sinStock ? "close-circle" : "checkmark-circle"}
+                        size={16}
+                        color={sinStock ? "#EF4444" : "#10B981"}
                     />
-                    <Text style={styles.textoBoton}>
-                        {sinStock ? 'No disponible' : 'Ver detalles'}
+                    <Text style={[
+                        styles.stockTexto,
+                        sinStock && styles.stockAgotado
+                    ]}>
+                        {sinStock ? 'Sin stock' : `Stock: ${producto.stock}`}
                     </Text>
-                </TouchableOpacity>
+                </View>
+            </View>
+
+            {/* Indicador visual de acción */}
+            <View style={[
+                styles.accionIndicador,
+                sinStock && styles.accionIndicadorDeshabilitado
+            ]}>
+                <Icon 
+                    name={sinStock ? "lock-closed" : "arrow-forward"} 
+                    size={16} 
+                    color={sinStock ? "#9CA3AF" : "#3B82F6"} 
+                />
             </View>
         </TouchableOpacity>
     );
@@ -103,142 +100,161 @@ const TarjetaProducto = ({ producto, onPress }) => {
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#FFF',
+        backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        margin: 8,
+        margin: 6,
         width: CARD_WIDTH,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
         overflow: 'hidden',
+        position: 'relative',
+    },
+    cardDeshabilitada: {
+        opacity: 0.6,
     },
     imagenContainer: {
         width: '100%',
-        height: CARD_WIDTH * 0.9,
-        backgroundColor: '#F8F9FA',
+        height: CARD_WIDTH * 1.1,
+        backgroundColor: '#F9FAFB',
         position: 'relative',
+        overflow: 'hidden',
     },
     imagen: {
         width: '100%',
         height: '100%',
     },
+    imagenDeshabilitada: {
+        opacity: 0.5,
+    },
+    gradienteImagen: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: '30%',
+        backgroundColor: 'transparent',
+    },
     badge: {
         position: 'absolute',
-        top: 8,
-        right: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
+        top: 10,
+        left: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 3,
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 4,
     },
     badgeSinStock: {
-        backgroundColor: '#E74C3C',
+        backgroundColor: '#EF4444',
     },
     badgeStockBajo: {
-        backgroundColor: '#F39C12',
+        backgroundColor: '#F59E0B',
+    },
+    badgeIcon: {
+        marginRight: 4,
     },
     badgeTexto: {
-        color: '#FFF',
+        color: '#FFFFFF',
         fontSize: 10,
-        fontWeight: 'bold',
+        fontWeight: '700',
         textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     info: {
         padding: 12,
+        gap: 6,
     },
     categoriaContainer: {
-        marginBottom: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 2,
+    },
+    categoriaDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#3B82F6',
+        marginRight: 6,
     },
     categoria: {
-        fontSize: 11,
-        color: '#FF6B6B',
+        fontSize: 10,
+        color: '#6B7280',
         fontWeight: '600',
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 0.8,
+        flex: 1,
     },
     nombre: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#2C3E50',
-        marginBottom: 8,
-        lineHeight: 18,
-        minHeight: 36,
-    },
-    footer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
+        color: '#1A1A1A',
+        lineHeight: 19,
+        minHeight: 38,
+        marginBottom: 4,
     },
     precioContainer: {
         flexDirection: 'row',
         alignItems: 'baseline',
+        marginBottom: 6,
     },
     simboloMoneda: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#2C3E50',
+        color: '#6B7280',
         marginRight: 2,
     },
     precio: {
         fontSize: 20,
-        fontWeight: 'bold',
-        color: '#2C3E50',
+        fontWeight: '700',
+        color: '#1A1A1A',
+        letterSpacing: -0.5,
     },
-    stockContainer: {
+    stockRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8F9FA',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        backgroundColor: '#F9FAFB',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
         borderRadius: 8,
+        alignSelf: 'flex-start',
     },
-    stock: {
-        fontSize: 12,
-        color: '#27AE60',
+    stockTexto: {
+        fontSize: 11,
+        color: '#10B981',
         fontWeight: '600',
-        marginLeft: 4,
+        marginLeft: 5,
     },
     stockAgotado: {
-        color: '#E74C3C',
+        color: '#EF4444',
     },
-    botonComprar: {
-        flexDirection: 'row',
-        backgroundColor: '#FF6B6B',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 10,
+    accionIndicador: {
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#EFF6FF',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#FF6B6B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    botonDeshabilitado: {
-        backgroundColor: '#BDC3C7',
+    accionIndicadorDeshabilitado: {
+        backgroundColor: '#F3F4F6',
         shadowColor: '#000',
-        shadowOpacity: 0.1,
-    },
-    iconoBoton: {
-        marginRight: 6,
-    },
-    textoBoton: {
-        color: '#FFF',
-        fontSize: 13,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        shadowOpacity: 0.05,
     },
 });
 

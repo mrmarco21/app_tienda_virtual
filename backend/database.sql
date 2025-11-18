@@ -1,4 +1,4 @@
--- Active: 1762938325355@@127.0.0.1@3306@tienda_virtual
+-- Active: 1753400898419@@127.0.0.1@3306@tienda_virtual
 -- Base de datos: tienda_virtual
 -- Script de creación de tablas para Tienda Virtual Móvil
 
@@ -38,19 +38,29 @@ CREATE TABLE IF NOT EXISTS pedidos (
   INDEX idx_fecha (fecha)
 );
 
--- Tabla de Detalle de Pedido
-CREATE TABLE IF NOT EXISTS detalle_pedido (
+-- Tabla de Detalle de Pedido actualizado
+-- ⚠️ CUIDADO: Esto eliminará todos los pedidos existentes
+DROP TABLE IF EXISTS pedidos;
+
+-- Luego crea la tabla con la estructura actualizada
+CREATE TABLE pedidos (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  pedido_id INT NOT NULL,
-  producto_id INT NOT NULL,
-  cantidad INT NOT NULL,
-  subtotal DECIMAL(10,2) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_pedido_id (pedido_id),
-  INDEX idx_producto_id (producto_id),
-  FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
-  FOREIGN KEY (producto_id) REFERENCES productos(id)
-);
+  nombre_cliente VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  telefono VARCHAR(20) NOT NULL,
+  direccion TEXT NOT NULL,
+  total DECIMAL(10,2) NOT NULL,
+  metodo_pago ENUM('Tarjeta','Efectivo','Yape','Plin','Billetera Digital') NOT NULL,
+  estado ENUM('Pendiente','Completado','Cancelado') DEFAULT 'Pendiente',
+  usuario_id INT NULL,
+  fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_email (email),
+  INDEX idx_estado (estado),
+  INDEX idx_fecha (fecha),
+  INDEX idx_usuario_id (usuario_id),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabla de Usuarios
 CREATE TABLE IF NOT EXISTS usuarios (

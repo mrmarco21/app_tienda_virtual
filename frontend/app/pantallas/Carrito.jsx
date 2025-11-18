@@ -7,14 +7,16 @@ import {
     TouchableOpacity, 
     StyleSheet, 
     Alert,
-    BackHandler 
+    BackHandler,
+    Platform,
+    StatusBar
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useCarrito } from '../contexto/CarritoContext';
 
 const Carrito = ({ navigation }) => {
     const { carrito, eliminarDelCarrito, actualizarCantidad, vaciarCarrito, obtenerTotal } = useCarrito();
 
-    // Manejar el botón de retroceso del dispositivo
     useEffect(() => {
         const backHandler = BackHandler.addEventListener(
             'hardwareBackPress',
@@ -29,7 +31,7 @@ const Carrito = ({ navigation }) => {
 
     const handleEliminar = (producto) => {
         Alert.alert(
-            '🗑️ Eliminar producto',
+            'Eliminar producto',
             `¿Deseas eliminar "${producto.nombre}" del carrito?`,
             [
                 { text: 'Cancelar', style: 'cancel' },
@@ -44,7 +46,7 @@ const Carrito = ({ navigation }) => {
 
     const handleVaciar = () => {
         Alert.alert(
-            '🗑️ Vaciar carrito',
+            'Vaciar carrito',
             '¿Estás seguro de eliminar todos los productos del carrito?',
             [
                 { text: 'Cancelar', style: 'cancel' },
@@ -61,24 +63,39 @@ const Carrito = ({ navigation }) => {
         return (
             <View style={styles.container}>
                 {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>🛒 Mi Carrito</Text>
+                <View style={[
+                    styles.header,
+                    { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
+                ]}>
+                    <TouchableOpacity 
+                        style={styles.backButton}
+                        onPress={() => navigation.navigate('Inicio')}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Mi Carrito</Text>
+                    <View style={styles.headerBadge}>
+                        <Text style={styles.headerBadgeText}>0</Text>
+                    </View>
                 </View>
 
+                {/* Estado vacío mejorado */}
                 <View style={styles.vacio}>
                     <View style={styles.vacioIconContainer}>
-                        <Text style={styles.vacioIcon}>🛒</Text>
+                        <Ionicons name="cart-outline" size={80} color="#D1D5DB" />
                     </View>
                     <Text style={styles.textoVacio}>Tu carrito está vacío</Text>
                     <Text style={styles.subtextoVacio}>
-                        ¡Agrega productos y empieza a comprar!
+                        ¡Descubre productos increíbles y empieza a comprar!
                     </Text>
                     <TouchableOpacity
                         style={styles.botonVacio}
                         onPress={() => navigation.navigate('Inicio')}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.textoBotonVacio}>🏠 Explorar productos</Text>
+                        <Ionicons name="storefront-outline" size={20} color="#FFF" />
+                        <Text style={styles.textoBotonVacio}>Explorar productos</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -89,19 +106,24 @@ const Carrito = ({ navigation }) => {
         <View style={styles.item}>
             <Image
                 source={{ 
-                    uri: item.imagen || 'https://via.placeholder.com/80/f0f0f0/999999?text=Sin+Imagen' 
+                    uri: item.imagen || 'https://via.placeholder.com/100/f0f0f0/999999?text=Sin+Imagen' 
                 }}
                 style={styles.imagen}
             />
+            
             <View style={styles.info}>
                 <Text style={styles.nombre} numberOfLines={2}>{item.nombre}</Text>
                 <Text style={styles.precioUnitario}>S/ {parseFloat(item.precio).toFixed(2)} c/u</Text>
 
-                {/* Stock disponible */}
+                {/* Indicador de stock máximo */}
                 {item.cantidad >= item.stock && (
-                    <Text style={styles.stockMaximo}>⚠️ Cantidad máxima</Text>
+                    <View style={styles.stockAlert}>
+                        <Ionicons name="alert-circle" size={14} color="#F59E0B" />
+                        <Text style={styles.stockMaximo}>Cantidad máxima</Text>
+                    </View>
                 )}
 
+                {/* Controles de cantidad */}
                 <View style={styles.cantidadContainer}>
                     <TouchableOpacity
                         style={[styles.botonCantidad, item.cantidad <= 1 && styles.botonCantidadDisabled]}
@@ -109,7 +131,11 @@ const Carrito = ({ navigation }) => {
                         disabled={item.cantidad <= 1}
                         activeOpacity={0.7}
                     >
-                        <Text style={styles.textoCantidad}>−</Text>
+                        <Ionicons 
+                            name="remove" 
+                            size={18} 
+                            color={item.cantidad <= 1 ? "#9CA3AF" : "#FFF"} 
+                        />
                     </TouchableOpacity>
 
                     <View style={styles.cantidadBadge}>
@@ -122,7 +148,11 @@ const Carrito = ({ navigation }) => {
                         disabled={item.cantidad >= item.stock}
                         activeOpacity={0.7}
                     >
-                        <Text style={styles.textoCantidad}>+</Text>
+                        <Ionicons 
+                            name="add" 
+                            size={18} 
+                            color={item.cantidad >= item.stock ? "#9CA3AF" : "#FFF"} 
+                        />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -136,7 +166,7 @@ const Carrito = ({ navigation }) => {
                     onPress={() => handleEliminar(item)}
                     activeOpacity={0.7}
                 >
-                    <Text style={styles.eliminar}>🗑️</Text>
+                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
                 </TouchableOpacity>
             </View>
         </View>
@@ -144,9 +174,19 @@ const Carrito = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>🛒 Mi Carrito</Text>
+            {/* Header mejorado */}
+            <View style={[
+                styles.header,
+                { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
+            ]}>
+                <TouchableOpacity 
+                    style={styles.backButton}
+                    onPress={() => navigation.navigate('Inicio')}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Mi Carrito</Text>
                 <View style={styles.headerBadge}>
                     <Text style={styles.headerBadgeText}>{carrito.length}</Text>
                 </View>
@@ -159,45 +199,60 @@ const Carrito = ({ navigation }) => {
                 renderItem={renderItem}
                 contentContainerStyle={styles.lista}
                 showsVerticalScrollIndicator={false}
+                ListHeaderComponent={
+                    <View style={styles.listaHeader}>
+                        <Text style={styles.listaHeaderTexto}>
+                            {carrito.length} {carrito.length === 1 ? 'producto' : 'productos'}
+                        </Text>
+                        <TouchableOpacity 
+                            onPress={handleVaciar}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.vaciarLink}>Vaciar todo</Text>
+                        </TouchableOpacity>
+                    </View>
+                }
             />
 
-            {/* Footer con total y botones */}
+            {/* Footer con resumen y acciones */}
             <View style={styles.footer}>
-                {/* Resumen */}
+                {/* Resumen de costos */}
                 <View style={styles.resumenContainer}>
                     <View style={styles.resumenRow}>
-                        <Text style={styles.resumenLabel}>Productos ({carrito.length})</Text>
+                        <Text style={styles.resumenLabel}>Subtotal</Text>
                         <Text style={styles.resumenValor}>S/ {obtenerTotal().toFixed(2)}</Text>
                     </View>
                     <View style={styles.resumenRow}>
-                        <Text style={styles.resumenLabel}>Envío</Text>
-                        <Text style={styles.resumenEnvio}>GRATIS 🎉</Text>
+                        <View style={styles.envioContainer}>
+                            <Ionicons name="rocket-outline" size={16} color="#10B981" />
+                            <Text style={styles.resumenLabel}>Envío</Text>
+                        </View>
+                        <Text style={styles.resumenEnvio}>GRATIS</Text>
                     </View>
+                    
                     <View style={styles.dividerFooter} />
+                    
                     <View style={styles.resumenRow}>
-                        <Text style={styles.totalLabel}>Total a pagar</Text>
-                        <Text style={styles.totalValor}>S/ {obtenerTotal().toFixed(2)}</Text>
+                        <Text style={styles.totalLabel}>Total</Text>
+                        <View style={styles.totalContainer}>
+                            <Text style={styles.totalMoneda}>S/</Text>
+                            <Text style={styles.totalValor}>{obtenerTotal().toFixed(2)}</Text>
+                        </View>
                     </View>
                 </View>
 
-                {/* Botones de acción */}
-                <View style={styles.botonesContainer}>
-                    <TouchableOpacity 
-                        style={styles.botonVaciar} 
-                        onPress={handleVaciar}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.textoVaciar}>🗑️ Vaciar carrito</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.botonComprar}
-                        onPress={() => navigation.navigate('ConfirmacionCompra')}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.textoComprar}>✅ Proceder con la compra</Text>
-                    </TouchableOpacity>
-                </View>
+                {/* Botón de compra */}
+                <TouchableOpacity
+                    style={styles.botonComprar}
+                    onPress={() => navigation.navigate('ConfirmacionCompra')}
+                    activeOpacity={0.8}
+                >
+                    <View style={styles.botonComprarContent}>
+                        <Ionicons name="lock-closed" size={20} color="#FFF" />
+                        <Text style={styles.textoComprar}>Proceder al pago</Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -206,40 +261,52 @@ const Carrito = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: '#F9FAFB',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
+        borderBottomColor: '#F3F4F6',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 3,
+        shadowRadius: 8,
         elevation: 3,
     },
-    headerTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-    },
-    headerBadge: {
-        backgroundColor: '#2196F3',
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F9FAFB',
         justifyContent: 'center',
         alignItems: 'center',
     },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1A1A1A',
+        flex: 1,
+        textAlign: 'center',
+        marginHorizontal: 16,
+    },
+    headerBadge: {
+        backgroundColor: '#3B82F6',
+        minWidth: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+    },
     headerBadgeText: {
-        color: '#fff',
+        color: '#FFFFFF',
         fontSize: 14,
-        fontWeight: 'bold',
+        fontWeight: '700',
     },
     vacio: {
         flex: 1,
@@ -248,148 +315,179 @@ const styles = StyleSheet.create({
         padding: 40,
     },
     vacioIconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: '#f0f7ff',
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        backgroundColor: '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 24,
     },
-    vacioIcon: {
-        fontSize: 60,
-    },
     textoVacio: {
         fontSize: 22,
-        fontWeight: '600',
-        color: '#333',
+        fontWeight: '700',
+        color: '#1A1A1A',
         marginBottom: 8,
     },
     subtextoVacio: {
-        fontSize: 16,
-        color: '#666',
+        fontSize: 15,
+        color: '#6B7280',
         textAlign: 'center',
         marginBottom: 32,
+        lineHeight: 22,
     },
     botonVacio: {
-        backgroundColor: '#2196F3',
-        paddingHorizontal: 32,
-        paddingVertical: 16,
+        flexDirection: 'row',
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 28,
+        paddingVertical: 14,
         borderRadius: 12,
-        shadowColor: '#2196F3',
+        alignItems: 'center',
+        gap: 8,
+        shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 5,
     },
     textoBotonVacio: {
-        color: '#fff',
+        color: '#FFFFFF',
         fontSize: 16,
+        fontWeight: '700',
+    },
+    listaHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+    },
+    listaHeaderTexto: {
+        fontSize: 14,
         fontWeight: '600',
+        color: '#6B7280',
+    },
+    vaciarLink: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#EF4444',
     },
     lista: {
         padding: 16,
+        paddingBottom: 8,
     },
     item: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
+        backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        padding: 14,
+        padding: 12,
         marginBottom: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
     },
     imagen: {
-        width: 90,
-        height: 90,
+        width: 100,
+        height: 100,
         borderRadius: 12,
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#F9FAFB',
     },
     info: {
         flex: 1,
-        marginLeft: 14,
+        marginLeft: 12,
         justifyContent: 'space-between',
     },
     nombre: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#1a1a1a',
+        color: '#1A1A1A',
         marginBottom: 4,
+        lineHeight: 20,
     },
     precioUnitario: {
         fontSize: 13,
-        color: '#666',
+        color: '#6B7280',
         marginBottom: 8,
+    },
+    stockAlert: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF3C7',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        alignSelf: 'flex-start',
+        marginBottom: 8,
+        gap: 4,
     },
     stockMaximo: {
         fontSize: 11,
-        color: '#FF9800',
-        fontWeight: '500',
-        marginBottom: 6,
+        color: '#92400E',
+        fontWeight: '600',
     },
     cantidadContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 8,
     },
     botonCantidad: {
         width: 32,
         height: 32,
-        backgroundColor: '#2196F3',
+        backgroundColor: '#3B82F6',
         borderRadius: 8,
         justifyContent: 'center',
         alignItems: 'center',
     },
     botonCantidadDisabled: {
-        backgroundColor: '#e0e0e0',
-    },
-    textoCantidad: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#fff',
+        backgroundColor: '#E5E7EB',
     },
     cantidadBadge: {
-        backgroundColor: '#f5f5f5',
-        paddingHorizontal: 16,
+        backgroundColor: '#F9FAFB',
+        paddingHorizontal: 14,
         paddingVertical: 6,
         borderRadius: 8,
-        marginHorizontal: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     cantidad: {
         fontSize: 15,
-        fontWeight: '600',
-        color: '#333',
+        fontWeight: '700',
+        color: '#1A1A1A',
     },
     derecha: {
         alignItems: 'flex-end',
         justifyContent: 'space-between',
-        marginLeft: 8,
+        marginLeft: 12,
     },
     subtotal: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#2196F3',
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#1A1A1A',
     },
     botonEliminar: {
-        padding: 8,
-    },
-    eliminar: {
-        fontSize: 22,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FEF2F2',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     footer: {
-        backgroundColor: '#fff',
+        backgroundColor: '#FFFFFF',
         paddingTop: 20,
         paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 16,
         borderTopWidth: 1,
-        borderTopColor: '#e0e0e0',
+        borderTopColor: '#F3F4F6',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 5,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 8,
     },
     resumenContainer: {
         marginBottom: 16,
@@ -397,68 +495,76 @@ const styles = StyleSheet.create({
     resumenRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        alignItems: 'center',
+        marginBottom: 10,
     },
     resumenLabel: {
         fontSize: 15,
-        color: '#666',
+        color: '#6B7280',
+        fontWeight: '500',
     },
     resumenValor: {
         fontSize: 15,
-        color: '#333',
-        fontWeight: '500',
+        color: '#1A1A1A',
+        fontWeight: '600',
+    },
+    envioContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     resumenEnvio: {
         fontSize: 15,
-        color: '#4CAF50',
-        fontWeight: '600',
+        color: '#10B981',
+        fontWeight: '700',
     },
     dividerFooter: {
         height: 1,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#E5E7EB',
         marginVertical: 12,
     },
     totalLabel: {
-        fontSize: 18,
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#1A1A1A',
+    },
+    totalContainer: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+    },
+    totalMoneda: {
+        fontSize: 16,
         fontWeight: '600',
-        color: '#1a1a1a',
+        color: '#1A1A1A',
+        marginRight: 4,
     },
     totalValor: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#2196F3',
-    },
-    botonesContainer: {
-        gap: 10,
-    },
-    botonVaciar: {
-        backgroundColor: '#fff',
-        padding: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: '#f44336',
-    },
-    textoVaciar: {
-        color: '#f44336',
-        fontSize: 15,
-        fontWeight: '600',
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#1A1A1A',
     },
     botonComprar: {
-        backgroundColor: '#4CAF50',
+        flexDirection: 'row',
+        backgroundColor: '#3B82F6',
         padding: 16,
         borderRadius: 12,
         alignItems: 'center',
-        shadowColor: '#4CAF50',
+        justifyContent: 'space-between',
+        shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
-        elevation: 5,
+        elevation: 6,
+    },
+    botonComprarContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
     },
     textoComprar: {
-        color: '#fff',
+        color: '#FFFFFF',
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '700',
     },
 });
 

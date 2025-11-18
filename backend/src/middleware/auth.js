@@ -21,8 +21,10 @@ export const verificarAuth = (req, res, next) => {
 
 // Middleware para verificar rol de vendedor/admin
 export const verificarVendedor = (req, res, next) => {
-  if (req.usuario.rol !== 'vendedor') {
-    return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de vendedor' });
+  const rolLower = req.usuario.rol?.toLowerCase() || '';
+  
+  if (rolLower !== 'vendedor' && rolLower !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de administrador o vendedor' });
   }
   next();
 };

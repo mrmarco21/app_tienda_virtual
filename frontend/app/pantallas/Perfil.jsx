@@ -6,24 +6,46 @@ import {
     StyleSheet,
     Alert,
     ScrollView,
-    BackHandler
+    BackHandler,
+    Platform,
+    StatusBar
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { obtenerPedidosPorEmail } from '../servicios/api';
+import { Ionicons } from '@expo/vector-icons';
+import { login, registro, obtenerPedidosPorEmail } from '../servicios/api';
 import LoginForm from '../componentes/LoginForm';
 import RegisterForm from '../componentes/RegisterForm';
+import ModalAdminLogin from '../componentes/ModalAdminLogin';
+import PerfilCard from '../componentes/PerfilCard';
+import ListaPedidos from '../componentes/ListaPedidos';
+import ModalDetallePedido from '../componentes/ModalDetallePedido';
+import OpcionesPerfil from '../componentes/OpcionesPerfil';
 
 const Perfil = ({ navigation }) => {
+    // Estados principales
     const [usuarioActivo, setUsuarioActivo] = useState(null);
-    const [vistaActual, setVistaActual] = useState('inicio'); // inicio, login, registro
+    const [vistaActual, setVistaActual] = useState('inicio');
     const [pedidos, setPedidos] = useState([]);
     const [cargando, setCargando] = useState(false);
+    
+    // Estados para modales
+    const [modalAdminVisible, setModalAdminVisible] = useState(false);
+    const [cargandoAdmin, setCargandoAdmin] = useState(false);
+    const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+    const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
+    
+    // Estado para expandir/colapsar pedidos
+    const [pedidosExpandido, setPedidosExpandido] = useState(false);
 
-    // Manejar el botón de retroceso del dispositivo
+    // Manejo del botón back
     useEffect(() => {
         const backHandler = BackHandler.addEventListener(
             'hardwareBackPress',
             () => {
+                if (modalAdminVisible) {
+                    setModalAdminVisible(false);
+                    return true;
+                }
                 if (vistaActual !== 'inicio') {
                     setVistaActual('inicio');
                     return true;
@@ -32,11 +54,10 @@ const Perfil = ({ navigation }) => {
                 return true;
             }
         );
-
         return () => backHandler.remove();
-    }, [navigation, vistaActual]);
+    }, [navigation, vistaActual, modalAdminVisible]);
 
-    // Cargar usuario guardado al iniciar
+    // Cargar usuario al iniciar
     useEffect(() => {
         cargarUsuarioGuardado();
     }, []);
@@ -47,103 +68,12 @@ const Perfil = ({ navigation }) => {
             if (usuarioString) {
                 const usuarioGuardado = JSON.parse(usuarioString);
                 setUsuarioActivo(usuarioGuardado);
-                cargarPedidosUsuario(usuarioGuardado.email);
+                const rolLower = usuarioGuardado.rol?.toLowerCase() || '';
+                if (rolLower === 'cliente' || !rolLower) {
+                    cargarPedidosUsuario(usuarioGuardado.email);
+                }
             }
         } catch (e) { }
-    };
-
-    const handleLogin = async (loginForm) => {
-        if (!loginForm.email.trim() || !loginForm.email.includes('@')) {
-            Alert.alert('⚠️ Error', 'Por favor ingresa un email válido');
-            return;
-        }
-        if (!loginForm.password.trim() || loginForm.password.length < 6) {
-            Alert.alert('⚠️ Error', 'La contraseña debe tener al menos 6 caracteres');
-            return;
-        }
-
-        setCargando(true);
-        try {
-            // Aquí iría la llamada a tu API para autenticar
-            // Por ahora simulamos un login exitoso
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const usuario = {
-                nombre: 'Usuario Demo',
-                email: loginForm.email
-            };
-
-            setUsuarioActivo(usuario);
-            await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
-
-            Alert.alert('✅ Bienvenido', `Hola ${usuario.nombre}!`);
-            setVistaActual('inicio');
-            cargarPedidosUsuario(usuario.email);
-        } catch (error) {
-            Alert.alert('❌ Error', 'Email o contraseña incorrectos');
-        } finally {
-            setCargando(false);
-        }
-    };
-
-    const handleRegistro = async (registroForm) => {
-        if (!registroForm.nombre.trim()) {
-            Alert.alert('⚠️ Error', 'Por favor ingresa tu nombre');
-            return;
-        }
-        if (!registroForm.email.trim() || !registroForm.email.includes('@')) {
-            Alert.alert('⚠️ Error', 'Por favor ingresa un email válido');
-            return;
-        }
-        if (registroForm.password.length < 6) {
-            Alert.alert('⚠️ Error', 'La contraseña debe tener al menos 6 caracteres');
-            return;
-        }
-        if (registroForm.password !== registroForm.confirmarPassword) {
-            Alert.alert('⚠️ Error', 'Las contraseñas no coinciden');
-            return;
-        }
-
-        setCargando(true);
-        try {
-            // Aquí iría la llamada a tu API para registrar
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const usuario = {
-                nombre: registroForm.nombre,
-                email: registroForm.email
-            };
-
-            setUsuarioActivo(usuario);
-            await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
-
-            Alert.alert('✅ Registro exitoso', `¡Bienvenido ${usuario.nombre}!`);
-            setVistaActual('inicio');
-        } catch (error) {
-            Alert.alert('❌ Error', 'No se pudo completar el registro');
-        } finally {
-            setCargando(false);
-        }
-    };
-
-    const handleCerrarSesion = () => {
-        Alert.alert(
-            '👋 Cerrar sesión',
-            '¿Estás seguro de cerrar sesión?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Cerrar sesión',
-                    style: 'destructive',
-                    onPress: () => {
-                        setUsuarioActivo(null);
-                        setPedidos([]);
-                        AsyncStorage.removeItem('usuario');
-                        Alert.alert('✅ Sesión cerrada', 'Hasta pronto!');
-                    }
-                }
-            ]
-        );
     };
 
     const cargarPedidosUsuario = async (email) => {
@@ -156,29 +86,179 @@ const Perfil = ({ navigation }) => {
         }
     };
 
+    // Login de admin
+    const handleLoginAdmin = async (adminForm) => {
+        if (!adminForm.email.trim() || !adminForm.email.includes('@')) {
+            Alert.alert('Datos incompletos', 'Por favor ingresa un email válido');
+            return;
+        }
+        if (!adminForm.password.trim() || adminForm.password.length < 6) {
+            Alert.alert('Datos incompletos', 'La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        setCargandoAdmin(true);
+        try {
+            const data = await login(adminForm.email, adminForm.password);
+            const { usuario, token } = data;
+            const rolLower = usuario.rol?.toLowerCase() || '';
+            
+            if (rolLower !== 'admin' && rolLower !== 'vendedor') {
+                Alert.alert(
+                    'Acceso denegado',
+                    'Esta cuenta no tiene permisos de administrador',
+                    [{ text: 'Entendido', style: 'cancel' }]
+                );
+                return;
+            }
+
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
+            
+            setModalAdminVisible(false);
+            
+            Alert.alert(
+                'Bienvenido Admin',
+                `Accediendo al panel de administración...`,
+                [{ text: 'Continuar', onPress: () => navigation.navigate('Admin') }]
+            );
+        } catch (error) {
+            Alert.alert('Error de autenticación', error.message || 'Credenciales incorrectas');
+        } finally {
+            setCargandoAdmin(false);
+        }
+    };
+
+    // Login de cliente
+    const handleLogin = async (loginForm) => {
+        if (!loginForm.email.trim() || !loginForm.email.includes('@')) {
+            Alert.alert('Datos incompletos', 'Por favor ingresa un email válido');
+            return;
+        }
+        if (!loginForm.password.trim() || loginForm.password.length < 6) {
+            Alert.alert('Datos incompletos', 'La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        setCargando(true);
+        try {
+            const data = await login(loginForm.email, loginForm.password);
+            const { usuario, token } = data;
+            const rolLower = usuario.rol?.toLowerCase() || '';
+
+            if (rolLower === 'admin' || rolLower === 'vendedor') {
+                Alert.alert(
+                    'Acceso restringido',
+                    'Esta es el área de clientes. Si eres administrador, usa el botón de acceso administrativo (icono de escudo) en la esquina superior.',
+                    [{ text: 'Entendido', style: 'cancel' }]
+                );
+                setCargando(false);
+                return;
+            }
+
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
+            setUsuarioActivo(usuario);
+
+            Alert.alert('¡Bienvenido!', `Hola ${usuario.nombre}!`);
+            setVistaActual('inicio');
+            cargarPedidosUsuario(usuario.email);
+        } catch (error) {
+            Alert.alert('Error', error.message || 'Email o contraseña incorrectos');
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    // Registro
+    const handleRegistro = async (registroForm) => {
+        if (!registroForm.nombre.trim()) {
+            Alert.alert('Datos incompletos', 'Por favor ingresa tu nombre');
+            return;
+        }
+        if (!registroForm.email.trim() || !registroForm.email.includes('@')) {
+            Alert.alert('Datos incompletos', 'Por favor ingresa un email válido');
+            return;
+        }
+        if (registroForm.password.length < 6) {
+            Alert.alert('Datos incompletos', 'La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+        if (registroForm.password !== registroForm.confirmarPassword) {
+            Alert.alert('Error', 'Las contraseñas no coinciden');
+            return;
+        }
+
+        setCargando(true);
+        try {
+            const data = await registro(registroForm.nombre, registroForm.email, registroForm.password);
+            const { usuario, token } = data;
+
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
+            setUsuarioActivo(usuario);
+
+            Alert.alert('¡Registro exitoso!', `¡Bienvenido ${usuario.nombre}!`);
+            setVistaActual('inicio');
+        } catch (error) {
+            Alert.alert('Error', error.message || 'No se pudo completar el registro');
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    // Cerrar sesión
+    const handleCerrarSesion = () => {
+        Alert.alert(
+            'Cerrar sesión',
+            '¿Estás seguro de cerrar sesión?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Cerrar sesión',
+                    style: 'destructive',
+                    onPress: () => {
+                        setUsuarioActivo(null);
+                        setPedidos([]);
+                        AsyncStorage.removeItem('usuario');
+                        AsyncStorage.removeItem('token');
+                        Alert.alert('Sesión cerrada', 'Hasta pronto!');
+                    }
+                }
+            ]
+        );
+    };
+
+    // Ver detalle de pedido
+    const handleVerDetalle = (pedido) => {
+        setPedidoSeleccionado(pedido);
+        setModalDetalleVisible(true);
+    };
+
+    // Funciones de utilidad
     const getEstadoColor = (estado) => {
         const estadoLower = estado?.toLowerCase() || '';
         switch (estadoLower) {
-            case 'pendiente': return '#FF9800';
-            case 'confirmado': return '#2196F3';
-            case 'enviado': return '#9C27B0';
-            case 'entregado': return '#4CAF50';
-            case 'cancelado': return '#f44336';
-            case 'completado': return '#4CAF50';
-            default: return '#666';
+            case 'pendiente': return '#F59E0B';
+            case 'confirmado': return '#3B82F6';
+            case 'enviado': return '#8B5CF6';
+            case 'entregado': return '#10B981';
+            case 'cancelado': return '#EF4444';
+            case 'completado': return '#10B981';
+            default: return '#6B7280';
         }
     };
 
     const getEstadoIcono = (estado) => {
         const estadoLower = estado?.toLowerCase() || '';
         switch (estadoLower) {
-            case 'pendiente': return '⏳';
-            case 'confirmado': return '✅';
-            case 'enviado': return '🚚';
-            case 'entregado': return '📦';
-            case 'cancelado': return '❌';
-            case 'completado': return '✅';
-            default: return '📋';
+            case 'pendiente': return 'time-outline';
+            case 'confirmado': return 'checkmark-circle-outline';
+            case 'enviado': return 'airplane-outline';
+            case 'entregado': return 'checkmark-done-circle-outline';
+            case 'cancelado': return 'close-circle-outline';
+            case 'completado': return 'checkmark-done-outline';
+            default: return 'document-text-outline';
         }
     };
 
@@ -186,8 +266,26 @@ const Perfil = ({ navigation }) => {
     if (!usuarioActivo && vistaActual === 'inicio') {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>👤 Mi Perfil</Text>
+                <View style={[
+                    styles.header,
+                    { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
+                ]}>
+                    <TouchableOpacity 
+                        style={styles.backButton}
+                        onPress={() => navigation.navigate('Inicio')}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Mi Perfil</Text>
+                    
+                    <TouchableOpacity
+                        style={styles.adminButton}
+                        onPress={() => setModalAdminVisible(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="shield-checkmark-outline" size={20} color="#6B7280" />
+                    </TouchableOpacity>
                 </View>
 
                 <ScrollView
@@ -197,11 +295,11 @@ const Perfil = ({ navigation }) => {
                 >
                     <View style={styles.noAuthContainer}>
                         <View style={styles.noAuthIconContainer}>
-                            <Text style={styles.noAuthIcon}>🔐</Text>
+                            <Ionicons name="person-circle-outline" size={80} color="#3B82F6" />
                         </View>
                         <Text style={styles.noAuthTitulo}>¡Bienvenido!</Text>
                         <Text style={styles.noAuthSubtitulo}>
-                            Inicia sesión o regístrate para ver tu historial de pedidos y disfrutar de una mejor experiencia
+                            Inicia sesión o regístrate para acceder a tu historial de pedidos y disfrutar de beneficios exclusivos
                         </Text>
 
                         <TouchableOpacity
@@ -209,7 +307,8 @@ const Perfil = ({ navigation }) => {
                             onPress={() => setVistaActual('login')}
                             activeOpacity={0.8}
                         >
-                            <Text style={styles.textoBotonPrimario}>🔑 Iniciar sesión</Text>
+                            <Ionicons name="log-in-outline" size={20} color="#FFF" style={styles.botonIcon} />
+                            <Text style={styles.textoBotonPrimario}>Iniciar sesión</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -217,12 +316,13 @@ const Perfil = ({ navigation }) => {
                             onPress={() => setVistaActual('registro')}
                             activeOpacity={0.8}
                         >
-                            <Text style={styles.textoBotonSecundario}>✨ Crear cuenta nueva</Text>
+                            <Ionicons name="person-add-outline" size={20} color="#3B82F6" style={styles.botonIcon} />
+                            <Text style={styles.textoBotonSecundario}>Crear cuenta nueva</Text>
                         </TouchableOpacity>
 
                         <View style={styles.divider}>
                             <View style={styles.dividerLine} />
-                            <Text style={styles.dividerText}>o continúa sin cuenta</Text>
+                            <Text style={styles.dividerText}>o continúa explorando</Text>
                             <View style={styles.dividerLine} />
                         </View>
 
@@ -231,10 +331,18 @@ const Perfil = ({ navigation }) => {
                             onPress={() => navigation.navigate('Inicio')}
                             activeOpacity={0.7}
                         >
-                            <Text style={styles.opcionSinCuentaTexto}>🏠 Explorar productos</Text>
+                            <Ionicons name="storefront-outline" size={20} color="#6B7280" />
+                            <Text style={styles.opcionSinCuentaTexto}>Ver productos</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
+
+                <ModalAdminLogin
+                    visible={modalAdminVisible}
+                    onClose={() => setModalAdminVisible(false)}
+                    onLogin={handleLoginAdmin}
+                    cargando={cargandoAdmin}
+                />
             </View>
         );
     }
@@ -243,12 +351,19 @@ const Perfil = ({ navigation }) => {
     if (vistaActual === 'login') {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setVistaActual('inicio')} style={styles.headerBack}>
-                        <Text style={styles.headerBackText}>← Volver</Text>
+                <View style={[
+                    styles.header,
+                    { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
+                ]}>
+                    <TouchableOpacity 
+                        onPress={() => setVistaActual('inicio')} 
+                        style={styles.backButton}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Iniciar sesión</Text>
-                    <View style={{ width: 60 }} />
+                    <View style={{ width: 40 }} />
                 </View>
 
                 <ScrollView
@@ -270,12 +385,19 @@ const Perfil = ({ navigation }) => {
     if (vistaActual === 'registro') {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => setVistaActual('inicio')} style={styles.headerBack}>
-                        <Text style={styles.headerBackText}>← Volver</Text>
+                <View style={[
+                    styles.header,
+                    { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
+                ]}>
+                    <TouchableOpacity 
+                        onPress={() => setVistaActual('inicio')} 
+                        style={styles.backButton}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Crear cuenta</Text>
-                    <View style={{ width: 60 }} />
+                    <View style={{ width: 40 }} />
                 </View>
 
                 <ScrollView
@@ -296,8 +418,19 @@ const Perfil = ({ navigation }) => {
     // VISTA: Usuario autenticado
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>👤 Mi Perfil</Text>
+            <View style={[
+                styles.header,
+                { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
+            ]}>
+                <TouchableOpacity 
+                    style={styles.backButton}
+                    onPress={() => navigation.navigate('Inicio')}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Mi Perfil</Text>
+                <View style={{ width: 40 }} />
             </View>
 
             <ScrollView
@@ -305,163 +438,31 @@ const Perfil = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.contenido}>
-                    {/* Información del usuario */}
-                    <View style={styles.perfilCard}>
-                        <View style={styles.perfilIcono}>
-                            <Text style={styles.perfilIconoTexto}>
-                                {usuarioActivo.nombre.charAt(0).toUpperCase()}
-                            </Text>
-                        </View>
-                        <View style={styles.perfilInfo}>
-                            <Text style={styles.perfilNombre}>{usuarioActivo.nombre}</Text>
-                            <Text style={styles.perfilEmail}>{usuarioActivo.email}</Text>
-                        </View>
-                    </View>
+                    <PerfilCard usuario={usuarioActivo} />
 
-                    {/* Mis pedidos */}
-                    <View style={styles.seccion}>
-                        <View style={styles.seccionHeader}>
-                            <Text style={styles.seccionIcono}>📦</Text>
-                            <View style={styles.seccionHeaderTexto}>
-                                <Text style={styles.seccionTitulo}>Mis Pedidos</Text>
-                                <Text style={styles.seccionSubtitulo}>
-                                    {pedidos.length === 0 ? 'Aún no tienes pedidos' : `${pedidos.length} pedido(s)`}
-                                </Text>
-                            </View>
-                        </View>
+                    <ListaPedidos
+                        pedidos={pedidos}
+                        expandido={pedidosExpandido}
+                        onToggleExpandir={() => setPedidosExpandido(!pedidosExpandido)}
+                        getEstadoColor={getEstadoColor}
+                        getEstadoIcono={getEstadoIcono}
+                        onVerDetalle={handleVerDetalle}
+                        navigation={navigation}
+                    />
 
-                        {pedidos.length === 0 ? (
-                            <View style={styles.sinPedidos}>
-                                <Text style={styles.sinPedidosIcono}>🛍️</Text>
-                                <Text style={styles.sinPedidosTexto}>No tienes pedidos aún</Text>
-                                <TouchableOpacity
-                                    style={styles.botonSecundario}
-                                    onPress={() => navigation.navigate('Inicio')}
-                                    activeOpacity={0.8}
-                                >
-                                    <Text style={styles.textoBotonSecundario}>Empezar a comprar</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ) : (
-                            pedidos.map((pedido, index) => (
-                                <View key={pedido.id} style={[styles.pedidoCard, index === pedidos.length - 1 && styles.pedidoCardLast]}>
-                                    <View style={styles.pedidoHeader}>
-                                        <View style={styles.pedidoNumero}>
-                                            <Text style={styles.pedidoNumeroLabel}>Pedido</Text>
-                                            <Text style={styles.pedidoNumeroValor}>#{pedido.id}</Text>
-                                        </View>
-                                        <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(pedido.estado) }]}>
-                                            <Text style={styles.estadoIcono}>{getEstadoIcono(pedido.estado)}</Text>
-                                            <Text style={styles.estadoTexto}>{pedido.estado}</Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.pedidoDivider} />
-
-                                    <View style={styles.pedidoInfo}>
-                                        <View style={styles.pedidoInfoRow}>
-                                            <Text style={styles.pedidoInfoIcono}>📅</Text>
-                                            <Text style={styles.pedidoInfoTexto}>
-                                                {new Date(pedido.fecha).toLocaleDateString('es-PE', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric'
-                                                })}
-                                            </Text>
-                                        </View>
-
-                                        <View style={styles.pedidoInfoRow}>
-                                            <Text style={styles.pedidoInfoIcono}>📍</Text>
-                                            <Text style={styles.pedidoInfoTexto} numberOfLines={2}>
-                                                {pedido.direccion}
-                                            </Text>
-                                        </View>
-
-                                        <View style={styles.pedidoInfoRow}>
-                                            <Text style={styles.pedidoInfoIcono}>💳</Text>
-                                            <Text style={styles.pedidoInfoTexto}>
-                                                {pedido.metodo_pago}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.pedidoFooter}>
-                                        <Text style={styles.pedidoTotalLabel}>Total pagado</Text>
-                                        <Text style={styles.pedidoTotal}>
-                                            S/ {parseFloat(pedido.total).toFixed(2)}
-                                        </Text>
-                                    </View>
-                                </View>
-                            ))
-                        )}
-                    </View>
-
-                    {/* Opciones */}
-                    <View style={styles.seccion}>
-                        <TouchableOpacity
-                            style={styles.opcion}
-                            onPress={() => Alert.alert(
-                                '📱 Acerca de',
-                                'Tienda Virtual Móvil v1.0\n\nDesarrollada con React Native + Expo\n\n¡Gracias por usar nuestra aplicación!',
-                                [{ text: 'Cerrar', style: 'cancel' }]
-                            )}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.opcionContenido}>
-                                <Text style={styles.opcionIcono}>📱</Text>
-                                <Text style={styles.opcionTexto}>Acerca de la app</Text>
-                            </View>
-                            <Text style={styles.opcionFlecha}>›</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.opcion}
-                            onPress={() => Alert.alert(
-                                '💬 Soporte',
-                                '¿Necesitas ayuda?\n\nContacta con nosotros:\n\n📧 Email: soporte@tienda.com\n📞 Teléfono: +51 999 999 999',
-                                [{ text: 'Entendido', style: 'default' }]
-                            )}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.opcionContenido}>
-                                <Text style={styles.opcionIcono}>💬</Text>
-                                <Text style={styles.opcionTexto}>Soporte y ayuda</Text>
-                            </View>
-                            <Text style={styles.opcionFlecha}>›</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.opcion}
-                            onPress={() => navigation.navigate('LoginAdmin')}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.opcionContenido}>
-                                <Text style={styles.opcionIcono}>🔐</Text>
-                                <Text style={[styles.opcionTexto, styles.opcionAdmin]}>
-                                    Panel de Administración
-                                </Text>
-                            </View>
-                            <Text style={styles.opcionFlecha}>›</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.opcion, styles.opcionUltima]}
-                            onPress={handleCerrarSesion}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.opcionContenido}>
-                                <Text style={styles.opcionIcono}>🚪</Text>
-                                <Text style={[styles.opcionTexto, styles.opcionCerrarSesion]}>
-                                    Cerrar sesión
-                                </Text>
-                            </View>
-                            <Text style={styles.opcionFlecha}>›</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <OpcionesPerfil onCerrarSesion={handleCerrarSesion} />
 
                     <View style={{ height: 20 }} />
                 </View>
             </ScrollView>
+
+            <ModalDetallePedido
+                visible={modalDetalleVisible}
+                pedido={pedidoSeleccionado}
+                onClose={() => setModalDetalleVisible(false)}
+                getEstadoColor={getEstadoColor}
+                getEstadoIcono={getEstadoIcono}
+            />
         </View>
     );
 };
@@ -469,372 +470,150 @@ const Perfil = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: '#F9FAFB',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+        backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
+        borderBottomColor: '#F3F4F6',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 3,
+        shadowRadius: 8,
         elevation: 3,
     },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F9FAFB',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     headerTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1A1A1A',
+        flex: 1,
+        textAlign: 'center',
     },
-    headerBack: {
-        padding: 4,
-    },
-    headerBackText: {
-        fontSize: 16,
-        color: '#2196F3',
-        fontWeight: '600',
+    adminButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F9FAFB',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        flexGrow: 1,
+        padding: 16,
     },
     contenido: {
         padding: 16,
     },
-
-    // Sin autenticar
     noAuthContainer: {
-        flex: 1,
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
         padding: 32,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 4,
     },
     noAuthIconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: '#e3f2fd',
-        justifyContent: 'center',
-        alignItems: 'center',
         marginBottom: 24,
-    },
-    noAuthIcon: {
-        fontSize: 60,
     },
     noAuthTitulo: {
         fontSize: 26,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
+        fontWeight: '700',
+        color: '#1A1A1A',
         marginBottom: 12,
         textAlign: 'center',
     },
     noAuthSubtitulo: {
-        fontSize: 16,
-        color: '#666',
+        fontSize: 15,
+        color: '#6B7280',
         textAlign: 'center',
-        lineHeight: 24,
         marginBottom: 32,
+        lineHeight: 22,
     },
-
-    // Botones
     botonPrimario: {
-        backgroundColor: '#2196F3',
-        padding: 16,
+        flexDirection: 'row',
+        backgroundColor: '#3B82F6',
+        paddingVertical: 14,
+        paddingHorizontal: 24,
         borderRadius: 12,
+        width: '100%',
         alignItems: 'center',
-        marginTop: 8,
-        shadowColor: '#2196F3',
+        justifyContent: 'center',
+        marginBottom: 12,
+        shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 5,
-        width: '100%',
+    },
+    botonIcon: {
+        marginRight: 8,
     },
     textoBotonPrimario: {
-        color: '#fff',
+        color: '#FFFFFF',
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '700',
     },
     botonSecundario: {
-        backgroundColor: '#fff',
-        padding: 16,
+        flexDirection: 'row',
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 14,
+        paddingHorizontal: 24,
         borderRadius: 12,
-        alignItems: 'center',
-        marginTop: 12,
-        borderWidth: 1.5,
-        borderColor: '#2196F3',
         width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: '#3B82F6',
+        gap: 8,
     },
     textoBotonSecundario: {
-        color: '#2196F3',
+        color: '#3B82F6',
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '700',
     },
-
-    // Divider
     divider: {
         flexDirection: 'row',
         alignItems: 'center',
         marginVertical: 24,
-        width: '100%',
     },
     dividerLine: {
         flex: 1,
         height: 1,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#E5E7EB',
     },
     dividerText: {
-        marginHorizontal: 16,
-        fontSize: 14,
-        color: '#999',
+        marginHorizontal: 12,
+        color: '#9CA3AF',
+        fontSize: 13,
     },
     opcionSinCuenta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         padding: 12,
     },
     opcionSinCuentaTexto: {
-        fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
-    },
-
-    // Perfil autenticado
-    perfilCard: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 3,
-    },
-    perfilIcono: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: '#2196F3',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    perfilIconoTexto: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    perfilInfo: {
-        flex: 1,
-    },
-    perfilNombre: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 4,
-    },
-    perfilEmail: {
-        fontSize: 14,
-        color: '#666',
-    },
-
-    // Secciones
-    seccion: {
-        marginBottom: 16,
-    },
-    seccionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    seccionIcono: {
-        fontSize: 24,
-        marginRight: 12,
-    },
-    seccionHeaderTexto: {
-        flex: 1,
-    },
-    seccionTitulo: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 2,
-    },
-    seccionSubtitulo: {
-        fontSize: 13,
-        color: '#666',
-    },
-
-    // Sin pedidos
-    sinPedidos: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 32,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 3,
-    },
-    sinPedidosIcono: {
-        fontSize: 48,
-        marginBottom: 12,
-    },
-    sinPedidosTexto: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-
-    // Pedidos
-    pedidoCard: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 3,
-    },
-    pedidoCardLast: {
-        marginBottom: 0,
-    },
-    pedidoHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    pedidoNumero: {
-        flex: 1,
-    },
-    pedidoNumeroLabel: {
-        fontSize: 12,
-        color: '#999',
-        marginBottom: 2,
-    },
-    pedidoNumeroValor: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-    },
-    estadoBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    estadoIcono: {
-        fontSize: 14,
-        marginRight: 4,
-    },
-    estadoTexto: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#fff',
-        textTransform: 'capitalize',
-    },
-    pedidoDivider: {
-        height: 1,
-        backgroundColor: '#f0f0f0',
-        marginBottom: 12,
-    },
-    pedidoInfo: {
-        marginBottom: 12,
-    },
-    pedidoInfoRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 8,
-    },
-    pedidoInfoIcono: {
-        fontSize: 16,
-        marginRight: 8,
-        marginTop: 2,
-    },
-    pedidoInfoTexto: {
-        flex: 1,
-        fontSize: 14,
-        color: '#666',
-        lineHeight: 20,
-    },
-    pedidoFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
-    },
-    pedidoTotalLabel: {
-        fontSize: 14,
-        color: '#666',
-    },
-    pedidoTotal: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#4CAF50',
-    },
-
-    // Opciones
-    opcion: {
-        backgroundColor: '#fff',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-    },
-    opcionUltima: {
-        borderBottomWidth: 0,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 12,
-    },
-    opcionContenido: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    opcionIcono: {
-        fontSize: 20,
-        marginRight: 12,
-    },
-    opcionTexto: {
-        fontSize: 16,
-        color: '#333',
-    },
-    opcionFlecha: {
-        fontSize: 24,
-        color: '#ccc',
-    },
-    opcionAdmin: {
-        color: '#2196F3',
-        fontWeight: '600',
-    },
-    opcionCerrarSesion: {
-        color: '#f44336',
+        color: '#6B7280',
+        fontSize: 15,
         fontWeight: '600',
     },
 });

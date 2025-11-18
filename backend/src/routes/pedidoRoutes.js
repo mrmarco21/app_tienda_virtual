@@ -4,7 +4,8 @@ import {
   obtenerPedidoPorId,
   crearPedido,
   actualizarEstadoPedido,
-  obtenerEstadisticas
+  obtenerEstadisticas,
+  obtenerPedidosPorEmail
 } from '../controllers/pedidoController.js';
 import { verificarAuth, verificarVendedor } from '../middleware/auth.js';
 
@@ -12,6 +13,7 @@ const router = express.Router();
 
 // Rutas públicas
 router.post('/', crearPedido);
+router.get('/email/:email', obtenerPedidosPorEmail); // Nueva ruta para obtener pedidos por email
 
 // Rutas protegidas (requieren autenticación de vendedor)
 router.get('/', verificarAuth, verificarVendedor, obtenerPedidos);

@@ -6,10 +6,13 @@ import {
     TouchableOpacity,
     StyleSheet,
     RefreshControl,
-    Alert
+    Alert,
+    Dimensions
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { obtenerEstadisticas } from '../../servicios/api';
+
+const { width } = Dimensions.get('window');
 
 const DashboardAdmin = ({ navigation }) => {
     const [estadisticas, setEstadisticas] = useState(null);
@@ -60,85 +63,198 @@ const DashboardAdmin = ({ navigation }) => {
             refreshControl={
                 <RefreshControl refreshing={cargando} onRefresh={cargarDatos} />
             }
+            showsVerticalScrollIndicator={false}
         >
+            {/* Header con gradiente */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.saludo}>Hola, {usuario?.nombre || 'Admin'} 👋</Text>
-                    <Text style={styles.subtitulo}>Panel de Control</Text>
+                <View style={styles.headerContent}>
+                    <View>
+                        <Text style={styles.saludo}>¡Hola, {usuario?.nombre || 'Admin'}! 👋</Text>
+                        <Text style={styles.subtitulo}>Panel de Control Administrativo</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleCerrarSesion} style={styles.botonSalir}>
+                        <Text style={styles.textoSalir}>Salir</Text>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={handleCerrarSesion} style={styles.botonSalir}>
-                    <Text style={styles.textoSalir}>Salir</Text>
-                </TouchableOpacity>
             </View>
 
             {estadisticas && (
                 <>
+                    {/* Resumen de Hoy */}
                     <View style={styles.seccion}>
-                        <Text style={styles.tituloSeccion}>📊 Resumen de Hoy</Text>
-                        <View style={styles.fila}>
-                            <View style={[styles.tarjeta, { backgroundColor: '#4CAF50' }]}>
-                                <Text style={styles.numeroTarjeta}>{estadisticas.ventasHoy.total}</Text>
-                                <Text style={styles.textoTarjeta}>Ventas</Text>
-                                <Text style={styles.montoTarjeta}>S/ {estadisticas.ventasHoy.monto.toFixed(2)}</Text>
-                            </View>
-                            <View style={[styles.tarjeta, { backgroundColor: '#FF9800' }]}>
-                                <Text style={styles.numeroTarjeta}>{estadisticas.pedidosPendientes}</Text>
-                                <Text style={styles.textoTarjeta}>Pendientes</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.seccion}>
-                        <Text style={styles.tituloSeccion}>📈 Este Mes</Text>
-                        <View style={styles.tarjetaGrande}>
-                            <Text style={styles.numeroGrande}>{estadisticas.ventasMes.total}</Text>
-                            <Text style={styles.textoGrande}>Pedidos Totales</Text>
-                            <Text style={styles.montoGrande}>S/ {estadisticas.ventasMes.monto.toFixed(2)}</Text>
-                        </View>
-                    </View>
-
-                    {estadisticas.productosAgotados > 0 && (
-                        <View style={styles.alerta}>
-                            <Text style={styles.textoAlerta}>
-                                ⚠️ {estadisticas.productosAgotados} productos con stock bajo
+                        <View style={styles.seccionHeader}>
+                            <Text style={styles.tituloSeccion}>Resumen de Hoy</Text>
+                            <Text style={styles.fechaActual}>
+                                {new Date().toLocaleDateString('es-PE', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric'
+                                })}
                             </Text>
                         </View>
-                    )}
 
-                    <View style={styles.seccion}>
-                        <Text style={styles.tituloSeccion}>🏆 Productos Más Vendidos</Text>
-                        {estadisticas.topProductos.map((producto, index) => (
-                            <View key={index} style={styles.itemTop}>
-                                <Text style={styles.numeroTop}>{index + 1}</Text>
-                                <View style={styles.infoTop}>
-                                    <Text style={styles.nombreTop}>{producto.nombre}</Text>
-                                    <Text style={styles.detalleTop}>
-                                        {producto.vendidos} vendidos • S/ {producto.ingresos.toFixed(2)}
+                        <View style={styles.statsGrid}>
+                            <View style={[styles.statCard, styles.statVentas]}>
+                                <View style={styles.statIconContainer}>
+                                    <Text style={styles.statIcon}>💰</Text>
+                                </View>
+                                <View style={styles.statInfo}>
+                                    <Text style={styles.statLabel}>Ventas de Hoy</Text>
+                                    <Text style={styles.statNumber}>{estadisticas.ventasHoy.total}</Text>
+                                    <Text style={styles.statMonto}>
+                                        S/ {estadisticas.ventasHoy.monto.toFixed(2)}
                                     </Text>
                                 </View>
                             </View>
+
+                            <View style={[styles.statCard, styles.statPendientes]}>
+                                <View style={styles.statIconContainer}>
+                                    <Text style={styles.statIcon}>⏳</Text>
+                                </View>
+                                <View style={styles.statInfo}>
+                                    <Text style={styles.statLabel}>Pendientes</Text>
+                                    <Text style={styles.statNumber}>{estadisticas.pedidosPendientes}</Text>
+                                    {estadisticas.pedidosPendientes > 0 && (
+                                        <View style={styles.urgenteBadge}>
+                                            <Text style={styles.urgenteText}>¡Atención!</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Resumen del Mes */}
+                    <View style={styles.seccion}>
+                        <View style={styles.seccionHeader}>
+                            <Text style={styles.tituloSeccion}>Resumen del Mes</Text>
+                            <Text style={styles.mesActual}>
+                                {new Date().toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}
+                            </Text>
+                        </View>
+
+                        <View style={styles.mesCard}>
+                            <View style={styles.mesIcono}>
+                                <Text style={styles.mesIconoText}>📈</Text>
+                            </View>
+                            <View style={styles.mesInfo}>
+                                <View style={styles.mesRow}>
+                                    <Text style={styles.mesLabel}>Total de Pedidos</Text>
+                                    <Text style={styles.mesValor}>{estadisticas.ventasMes.total}</Text>
+                                </View>
+                                <View style={styles.divider} />
+                                <View style={styles.mesRow}>
+                                    <Text style={styles.mesLabel}>Ingresos Totales</Text>
+                                    <Text style={styles.mesMonto}>
+                                        S/ {estadisticas.ventasMes.monto.toFixed(2)}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Alerta de Stock Bajo */}
+                    {estadisticas.productosAgotados > 0 && (
+                        <View style={styles.alertaContainer}>
+                            <View style={styles.alertaIcono}>
+                                <Text style={styles.alertaIconoText}>⚠️</Text>
+                            </View>
+                            <View style={styles.alertaContent}>
+                                <Text style={styles.alertaTitulo}>Stock Bajo</Text>
+                                <Text style={styles.alertaTexto}>
+                                    {estadisticas.productosAgotados} {estadisticas.productosAgotados === 1 ? 'producto' : 'productos'} con inventario bajo
+                                </Text>
+                            </View>
+                            <TouchableOpacity 
+                                style={styles.alertaBoton}
+                                onPress={() => navigation.navigate('GestionProductos')}
+                            >
+                                <Text style={styles.alertaBotonTexto}>Ver</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {/* Top Productos */}
+                    <View style={styles.seccion}>
+                        <View style={styles.seccionHeader}>
+                            <Text style={styles.tituloSeccion}>Top Productos</Text>
+                            <Text style={styles.subtituloSeccion}>Más vendidos</Text>
+                        </View>
+
+                        {estadisticas.topProductos.map((producto, index) => (
+                            <View key={index} style={styles.topItem}>
+                                <View style={styles.topRank}>
+                                    <Text style={[
+                                        styles.topRankText,
+                                        index === 0 && styles.topRank1,
+                                        index === 1 && styles.topRank2,
+                                        index === 2 && styles.topRank3,
+                                    ]}>
+                                        {index + 1}
+                                    </Text>
+                                </View>
+                                <View style={styles.topInfo}>
+                                    <Text style={styles.topNombre}>{producto.nombre}</Text>
+                                    <View style={styles.topStats}>
+                                        <View style={styles.topStat}>
+                                            <Text style={styles.topStatIcono}>📦</Text>
+                                            <Text style={styles.topStatTexto}>
+                                                {producto.vendidos} vendidos
+                                            </Text>
+                                        </View>
+                                        <View style={styles.topStat}>
+                                            <Text style={styles.topStatIcono}>💰</Text>
+                                            <Text style={styles.topStatTexto}>
+                                                S/ {producto.ingresos.toFixed(2)}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </View>
+                                {index < 3 && (
+                                    <View style={styles.topBadge}>
+                                        <Text style={styles.topBadgeText}>
+                                            {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
                         ))}
+                    </View>
+
+                    {/* Acciones Rápidas */}
+                    <View style={styles.seccion}>
+                        <Text style={styles.tituloSeccion}>Acciones Rápidas</Text>
+                        
+                        <View style={styles.accionesGrid}>
+                            <TouchableOpacity
+                                style={[styles.accionCard, styles.accionProductos]}
+                                onPress={() => navigation.navigate('GestionProductos')}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.accionIconCircle}>
+                                    <Text style={styles.accionIcon}>📦</Text>
+                                </View>
+                                <Text style={styles.accionTitulo}>Productos</Text>
+                                <Text style={styles.accionSubtitulo}>Gestionar inventario</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.accionCard, styles.accionPedidos]}
+                                onPress={() => navigation.navigate('GestionPedidos')}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.accionIconCircle}>
+                                    <Text style={styles.accionIcon}>📋</Text>
+                                </View>
+                                <Text style={styles.accionTitulo}>Pedidos</Text>
+                                <Text style={styles.accionSubtitulo}>Ver y gestionar</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </>
             )}
 
-            <View style={styles.seccionBotones}>
-                <TouchableOpacity
-                    style={[styles.botonAccion, { backgroundColor: '#2196F3' }]}
-                    onPress={() => navigation.navigate('GestionProductos')}
-                >
-                    <Text style={styles.iconoBoton}>📦</Text>
-                    <Text style={styles.textoBotonAccion}>Productos</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.botonAccion, { backgroundColor: '#9C27B0' }]}
-                    onPress={() => navigation.navigate('GestionPedidos')}
-                >
-                    <Text style={styles.iconoBoton}>📋</Text>
-                    <Text style={styles.textoBotonAccion}>Pedidos</Text>
-                </TouchableOpacity>
-            </View>
+            <View style={{ height: 30 }} />
         </ScrollView>
     );
 };
@@ -146,152 +262,354 @@ const DashboardAdmin = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#F8F9FA',
     },
     header: {
-        backgroundColor: '#2196F3',
+        backgroundColor: '#3B82F6',
+        paddingTop: 50,
+        paddingBottom: 30,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+    },
+    headerContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    saludo: {
+        fontSize: 26,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        letterSpacing: -0.5,
+    },
+    subtitulo: {
+        fontSize: 14,
+        color: '#FFFFFF',
+        opacity: 0.9,
+        marginTop: 4,
+    },
+    botonSalir: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+    },
+    textoSalir: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    seccion: {
+        marginHorizontal: 20,
+        marginTop: 24,
+    },
+    seccionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    tituloSeccion: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1A1A1A',
+    },
+    subtituloSeccion: {
+        fontSize: 13,
+        color: '#9CA3AF',
+        fontWeight: '500',
+    },
+    fechaActual: {
+        fontSize: 13,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    mesActual: {
+        fontSize: 13,
+        color: '#6B7280',
+        fontWeight: '500',
+        textTransform: 'capitalize',
+    },
+    statsGrid: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    statCard: {
+        flex: 1,
+        borderRadius: 20,
         padding: 20,
-        paddingTop: 40,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    statVentas: {
+        backgroundColor: '#D1FAE5',
+    },
+    statPendientes: {
+        backgroundColor: '#FEF3C7',
+    },
+    statIconContainer: {
+        marginBottom: 12,
+    },
+    statIcon: {
+        fontSize: 32,
+    },
+    statInfo: {
+        gap: 4,
+    },
+    statLabel: {
+        fontSize: 13,
+        color: '#6B7280',
+        fontWeight: '600',
+    },
+    statNumber: {
+        fontSize: 32,
+        fontWeight: '700',
+        color: '#1A1A1A',
+    },
+    statMonto: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#10B981',
+        marginTop: 4,
+    },
+    urgenteBadge: {
+        backgroundColor: '#EF4444',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+        marginTop: 8,
+    },
+    urgenteText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    mesCard: {
+        flexDirection: 'row',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    mesIcono: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#DBEAFE',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    mesIconoText: {
+        fontSize: 28,
+    },
+    mesInfo: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    mesRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    saludo: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    subtitulo: {
-        fontSize: 16,
-        color: '#fff',
-        opacity: 0.9,
-    },
-    botonSalir: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        padding: 10,
-        borderRadius: 8,
-    },
-    textoSalir: {
-        color: '#fff',
-        fontWeight: 'bold',
-    },
-    seccion: {
-        padding: 20,
-    },
-    tituloSeccion: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 15,
-        color: '#333',
-    },
-    fila: {
-        flexDirection: 'row',
-        gap: 15,
-    },
-    tarjeta: {
-        flex: 1,
-        padding: 20,
-        borderRadius: 15,
-        alignItems: 'center',
-    },
-    numeroTarjeta: {
-        fontSize: 36,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    textoTarjeta: {
+    mesLabel: {
         fontSize: 14,
-        color: '#fff',
-        marginTop: 5,
+        color: '#6B7280',
+        fontWeight: '500',
     },
-    montoTarjeta: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginTop: 5,
-    },
-    tarjetaGrande: {
-        backgroundColor: '#2196F3',
-        padding: 30,
-        borderRadius: 15,
-        alignItems: 'center',
-    },
-    numeroGrande: {
-        fontSize: 48,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    textoGrande: {
-        fontSize: 16,
-        color: '#fff',
-        marginTop: 10,
-    },
-    montoGrande: {
+    mesValor: {
         fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginTop: 10,
+        fontWeight: '700',
+        color: '#1A1A1A',
     },
-    alerta: {
-        backgroundColor: '#FFF3CD',
-        padding: 15,
+    mesMonto: {
+        fontSize: 26,
+        fontWeight: '700',
+        color: '#3B82F6',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#F3F4F6',
+        marginVertical: 12,
+    },
+    alertaContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
         marginHorizontal: 20,
-        borderRadius: 10,
+        marginTop: 24,
+        padding: 16,
+        borderRadius: 16,
         borderLeftWidth: 4,
-        borderLeftColor: '#FF9800',
+        borderLeftColor: '#F59E0B',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    textoAlerta: {
-        color: '#856404',
+    alertaIcono: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#FEF3C7',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    alertaIconoText: {
+        fontSize: 20,
+    },
+    alertaContent: {
+        flex: 1,
+    },
+    alertaTitulo: {
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '700',
+        color: '#1A1A1A',
+        marginBottom: 2,
     },
-    itemTop: {
-        flexDirection: 'row',
-        backgroundColor: '#fff',
-        padding: 15,
+    alertaTexto: {
+        fontSize: 13,
+        color: '#6B7280',
+    },
+    alertaBoton: {
+        backgroundColor: '#F59E0B',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
         borderRadius: 10,
-        marginBottom: 10,
-        alignItems: 'center',
     },
-    numeroTop: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#2196F3',
-        marginRight: 15,
-        width: 30,
-    },
-    infoTop: {
-        flex: 1,
-    },
-    nombreTop: {
-        fontSize: 16,
+    alertaBotonTexto: {
+        color: '#FFFFFF',
+        fontSize: 13,
         fontWeight: '600',
-        color: '#333',
     },
-    detalleTop: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 5,
-    },
-    seccionBotones: {
+    topItem: {
         flexDirection: 'row',
-        padding: 20,
-        gap: 15,
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    botonAccion: {
+    topRank: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F3F4F6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    topRankText: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#6B7280',
+    },
+    topRank1: {
+        color: '#F59E0B',
+    },
+    topRank2: {
+        color: '#9CA3AF',
+    },
+    topRank3: {
+        color: '#CD7F32',
+    },
+    topInfo: {
         flex: 1,
-        padding: 20,
-        borderRadius: 15,
+    },
+    topNombre: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#1A1A1A',
+        marginBottom: 6,
+    },
+    topStats: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    topStat: {
+        flexDirection: 'row',
         alignItems: 'center',
     },
-    iconoBoton: {
-        fontSize: 40,
-        marginBottom: 10,
+    topStatIcono: {
+        fontSize: 14,
+        marginRight: 4,
     },
-    textoBotonAccion: {
-        color: '#fff',
+    topStatTexto: {
+        fontSize: 13,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    topBadge: {
+        marginLeft: 8,
+    },
+    topBadgeText: {
+        fontSize: 24,
+    },
+    accionesGrid: {
+        flexDirection: 'row',
+        gap: 16,
+        marginTop: 16,
+    },
+    accionCard: {
+        flex: 1,
+        borderRadius: 20,
+        padding: 20,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    accionProductos: {
+        backgroundColor: '#DBEAFE',
+    },
+    accionPedidos: {
+        backgroundColor: '#E9D5FF',
+    },
+    accionIconCircle: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    accionIcon: {
+        fontSize: 28,
+    },
+    accionTitulo: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '700',
+        color: '#1A1A1A',
+        marginBottom: 4,
+    },
+    accionSubtitulo: {
+        fontSize: 12,
+        color: '#6B7280',
+        fontWeight: '500',
     },
 });
 

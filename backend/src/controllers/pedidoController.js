@@ -80,9 +80,10 @@ export const crearPedido = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const { nombre_cliente, email, direccion, metodo_pago, productos } = req.body;
+    const { nombre_cliente, email, telefono, direccion, metodo_pago, productos, usuario_id } = req.body;
 
-    if (!nombre_cliente || !email || !direccion || !metodo_pago || !productos || productos.length === 0) {
+    // Validar datos requeridos
+    if (!nombre_cliente || !email || !telefono || !direccion || !metodo_pago || !productos || productos.length === 0) {
       return res.status(400).json({ error: 'Datos incompletos' });
     }
 
@@ -105,10 +106,10 @@ export const crearPedido = async (req, res) => {
       total += producto[0].precio * item.cantidad;
     }
 
-    // Crear pedido
+    // Crear pedido con usuario_id y telefono
     const [resultado] = await connection.query(
-      'INSERT INTO pedidos (nombre_cliente, email, direccion, total, metodo_pago) VALUES (?, ?, ?, ?, ?)',
-      [nombre_cliente, email, direccion, total, metodo_pago]
+      'INSERT INTO pedidos (nombre_cliente, email, telefono, direccion, total, metodo_pago, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [nombre_cliente, email, telefono, direccion, total, metodo_pago, usuario_id || null]
     );
 
     const pedidoId = resultado.insertId;
@@ -213,5 +214,30 @@ export const obtenerEstadisticas = async (req, res) => {
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
     res.status(500).json({ error: 'Error al obtener estadísticas' });
+  }
+};
+
+// Obtener pedidos de un usuario por email
+export const obtenerPedidosPorEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    const [pedidos] = await pool.query(
+      `SELECT p.*, 
+        COUNT(dp.id) as cantidad_productos,
+        GROUP_CONCAT(CONCAT(pr.nombre, ' (x', dp.cantidad, ')') SEPARATOR ', ') as productos
+       FROM pedidos p
+       LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
+       LEFT JOIN productos pr ON dp.producto_id = pr.id
+       WHERE p.email = ?
+       GROUP BY p.id
+       ORDER BY p.fecha DESC`,
+      [email]
+    );
+
+    res.json({ pedidos });
+  } catch (error) {
+    console.error('Error al obtener pedidos por email:', error);
+    res.status(500).json({ error: 'Error al obtener pedidos' });
   }
 };

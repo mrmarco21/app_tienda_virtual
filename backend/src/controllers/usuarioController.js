@@ -1,6 +1,10 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken'; // 👈 agregado para generar tokens
 
+// =============================
+// 📌 REGISTRAR USUARIO
+// =============================
 export const registrarUsuario = async (req, res) => {
   try {
     const { nombre, email, password, rol = 'cliente' } = req.body;
@@ -49,23 +53,15 @@ export const registrarUsuario = async (req, res) => {
     }
 
     // Encriptar contraseña
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insertar usuario
-    const query = `
-      INSERT INTO usuarios (nombre, email, password, rol) 
-      VALUES (?, ?, ?, ?)
-    `;
-    
-    const [result] = await pool.query(query, [
-      nombre,
-      email,
-      hashedPassword,
-      rol
-    ]);
+    const [result] = await pool.query(
+      'INSERT INTO usuarios (nombre, email, password, rol) VALUES (?, ?, ?, ?)',
+      [nombre, email, hashedPassword, rol]
+    );
 
-    // Obtener el usuario recién creado (sin contraseña)
+    // Obtener usuario recién creado
     const [nuevoUsuario] = await pool.query(
       'SELECT id, nombre, email, rol, created_at FROM usuarios WHERE id = ?',
       [result.insertId]
@@ -87,11 +83,13 @@ export const registrarUsuario = async (req, res) => {
   }
 };
 
+// =============================
+// 🔐 LOGIN USUARIO (CON TOKEN)
+// =============================
 export const loginUsuario = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validación básica
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -99,7 +97,7 @@ export const loginUsuario = async (req, res) => {
       });
     }
 
-    // Buscar usuario por email
+    // Buscar usuario
     const [usuarios] = await pool.query(
       'SELECT id, nombre, email, password, rol, created_at FROM usuarios WHERE email = ?',
       [email]
@@ -113,8 +111,6 @@ export const loginUsuario = async (req, res) => {
     }
 
     const usuario = usuarios[0];
-
-    // Verificar contraseña
     const passwordValida = await bcrypt.compare(password, usuario.password);
     if (!passwordValida) {
       return res.status(401).json({
@@ -123,19 +119,29 @@ export const loginUsuario = async (req, res) => {
       });
     }
 
-    // Eliminar contraseña del objeto de respuesta
-    const usuarioResponse = {
-      id: usuario.id,
-      nombre: usuario.nombre,
-      email: usuario.email,
-      rol: usuario.rol,
-      created_at: usuario.created_at
-    };
+    // Crear token JWT
+    const token = jwt.sign(
+      {
+        id: usuario.id,
+        email: usuario.email,
+        rol: usuario.rol
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '2h' }
+    );
 
+    // Respuesta sin contraseña
     res.json({
       success: true,
       message: 'Login exitoso',
-      data: usuarioResponse
+      token, // 👈 aquí te devuelve el token
+      data: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+        created_at: usuario.created_at
+      }
     });
 
   } catch (error) {
@@ -148,6 +154,9 @@ export const loginUsuario = async (req, res) => {
   }
 };
 
+// =============================
+// 👤 OBTENER PERFIL
+// =============================
 export const obtenerPerfil = async (req, res) => {
   try {
     const { email } = req.params;
@@ -186,6 +195,9 @@ export const obtenerPerfil = async (req, res) => {
   }
 };
 
+// =============================
+// ✏️ ACTUALIZAR PERFIL
+// =============================
 export const actualizarPerfil = async (req, res) => {
   try {
     const { id } = req.params;
@@ -198,47 +210,21 @@ export const actualizarPerfil = async (req, res) => {
       });
     }
 
-    // Verificar si el usuario existe
     const [usuarioExistente] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
     if (usuarioExistente.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usuario no encontrado'
-      });
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
-    // Verificar si el nuevo email ya está en uso por otro usuario
     if (email && email !== usuarioExistente[0].email) {
       const [emailExistente] = await pool.query('SELECT id FROM usuarios WHERE email = ? AND id != ?', [email, id]);
       if (emailExistente.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message: 'El email ya está en uso por otro usuario'
-        });
+        return res.status(409).json({ success: false, message: 'El email ya está en uso' });
       }
     }
 
-    // Construir query dinámico
-    let query = 'UPDATE usuarios SET ';
-    const params = [];
-    const updates = [];
+    const query = 'UPDATE usuarios SET nombre = ?, email = ? WHERE id = ?';
+    await pool.query(query, [nombre || usuarioExistente[0].nombre, email || usuarioExistente[0].email, id]);
 
-    if (nombre) {
-      updates.push('nombre = ?');
-      params.push(nombre);
-    }
-
-    if (email) {
-      updates.push('email = ?');
-      params.push(email);
-    }
-
-    query += updates.join(', ') + ' WHERE id = ?';
-    params.push(id);
-
-    await pool.query(query, params);
-
-    // Obtener el usuario actualizado
     const [usuarioActualizado] = await pool.query(
       'SELECT id, nombre, email, rol, created_at FROM usuarios WHERE id = ?',
       [id]
@@ -260,6 +246,9 @@ export const actualizarPerfil = async (req, res) => {
   }
 };
 
+// =============================
+// 🔑 CAMBIAR CONTRASEÑA
+// =============================
 export const cambiarPassword = async (req, res) => {
   try {
     const { id } = req.params;
@@ -279,35 +268,20 @@ export const cambiarPassword = async (req, res) => {
       });
     }
 
-    // Buscar usuario
     const [usuarios] = await pool.query('SELECT password FROM usuarios WHERE id = ?', [id]);
     if (usuarios.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usuario no encontrado'
-      });
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
-    // Verificar contraseña actual
     const passwordValida = await bcrypt.compare(passwordActual, usuarios[0].password);
     if (!passwordValida) {
-      return res.status(401).json({
-        success: false,
-        message: 'Contraseña actual incorrecta'
-      });
+      return res.status(401).json({ success: false, message: 'Contraseña actual incorrecta' });
     }
 
-    // Encriptar nueva contraseña
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(passwordNuevo, saltRounds);
-
-    // Actualizar contraseña
+    const hashedPassword = await bcrypt.hash(passwordNuevo, 10);
     await pool.query('UPDATE usuarios SET password = ? WHERE id = ?', [hashedPassword, id]);
 
-    res.json({
-      success: true,
-      message: 'Contraseña actualizada exitosamente'
-    });
+    res.json({ success: true, message: 'Contraseña actualizada exitosamente' });
 
   } catch (error) {
     console.error('Error al cambiar contraseña:', error);
@@ -319,19 +293,21 @@ export const cambiarPassword = async (req, res) => {
   }
 };
 
+// =============================
+// 👥 OBTENER USUARIOS
+// =============================
 export const obtenerUsuarios = async (req, res) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT id, nombre, email, rol, created_at 
-      FROM usuarios 
-      ORDER BY created_at DESC
-    `);
+    const [rows] = await pool.query(
+      'SELECT id, nombre, email, rol, created_at FROM usuarios ORDER BY created_at DESC'
+    );
 
     res.json({
       success: true,
       data: rows,
       total: rows.length
     });
+
   } catch (error) {
     console.error('Error al obtener usuarios:', error);
     res.status(500).json({
@@ -342,21 +318,21 @@ export const obtenerUsuarios = async (req, res) => {
   }
 };
 
+// =============================
+// 🧾 OBTENER PEDIDOS POR EMAIL
+// =============================
 export const obtenerPedidosPorEmail = async (req, res) => {
   try {
     const { email } = req.params;
 
     if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email requerido'
-      });
+      return res.status(400).json({ success: false, message: 'Email requerido' });
     }
 
     const [pedidos] = await pool.query(
       `SELECT p.*, 
-        COUNT(dp.id) as cantidad_productos,
-        GROUP_CONCAT(CONCAT(pr.nombre, ' (x', dp.cantidad, ')') SEPARATOR ', ') as productos
+              COUNT(dp.id) AS cantidad_productos,
+              GROUP_CONCAT(CONCAT(pr.nombre, ' (x', dp.cantidad, ')') SEPARATOR ', ') AS productos
        FROM pedidos p
        LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
        LEFT JOIN productos pr ON dp.producto_id = pr.id
