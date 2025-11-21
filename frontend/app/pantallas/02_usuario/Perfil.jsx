@@ -12,14 +12,14 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { login, registro, obtenerPedidosPorEmail } from '../servicios/api';
-import LoginForm from '../componentes/LoginForm';
-import RegisterForm from '../componentes/RegisterForm';
-import ModalAdminLogin from '../componentes/ModalAdminLogin';
-import PerfilCard from '../componentes/PerfilCard';
-import ListaPedidos from '../componentes/ListaPedidos';
-import ModalDetallePedido from '../componentes/ModalDetallePedido';
-import OpcionesPerfil from '../componentes/OpcionesPerfil';
+import { login, registro, obtenerPedidosPorEmail } from '../../servicios/api';
+import FormularioLogin from '../../componentes/04_formularios/FormularioLogin';
+import FormularioRegistro from '../../componentes/04_formularios/FormularioRegistro';
+import ModalLoginAdmin from '../../componentes/05_modales/ModalLoginAdmin';
+import TarjetaPerfil from '../../componentes/02_tarjetas/TarjetaPerfil';
+import ListaPedidos from '../../componentes/03_listas/ListaPedidos';
+import ModalDetallePedido from '../../componentes/05_modales/ModalDetallePedido';
+import OpcionesPerfil from '../../componentes/06_secciones/OpcionesPerfil';
 
 const Perfil = ({ navigation }) => {
     // Estados principales
@@ -27,13 +27,13 @@ const Perfil = ({ navigation }) => {
     const [vistaActual, setVistaActual] = useState('inicio');
     const [pedidos, setPedidos] = useState([]);
     const [cargando, setCargando] = useState(false);
-    
+
     // Estados para modales
     const [modalAdminVisible, setModalAdminVisible] = useState(false);
     const [cargandoAdmin, setCargandoAdmin] = useState(false);
     const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
     const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
-    
+
     // Estado para expandir/colapsar pedidos
     const [pedidosExpandido, setPedidosExpandido] = useState(false);
 
@@ -102,7 +102,7 @@ const Perfil = ({ navigation }) => {
             const data = await login(adminForm.email, adminForm.password);
             const { usuario, token } = data;
             const rolLower = usuario.rol?.toLowerCase() || '';
-            
+
             if (rolLower !== 'admin' && rolLower !== 'vendedor') {
                 Alert.alert(
                     'Acceso denegado',
@@ -114,9 +114,9 @@ const Perfil = ({ navigation }) => {
 
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
-            
+
             setModalAdminVisible(false);
-            
+
             Alert.alert(
                 'Bienvenido Admin',
                 `Accediendo al panel de administración...`,
@@ -270,7 +270,7 @@ const Perfil = ({ navigation }) => {
                     styles.header,
                     { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
                 ]}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.backButton}
                         onPress={() => navigation.navigate('Inicio')}
                         activeOpacity={0.7}
@@ -278,7 +278,7 @@ const Perfil = ({ navigation }) => {
                         <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Mi Perfil</Text>
-                    
+
                     <TouchableOpacity
                         style={styles.adminButton}
                         onPress={() => setModalAdminVisible(true)}
@@ -337,7 +337,7 @@ const Perfil = ({ navigation }) => {
                     </View>
                 </ScrollView>
 
-                <ModalAdminLogin
+                <ModalLoginAdmin
                     visible={modalAdminVisible}
                     onClose={() => setModalAdminVisible(false)}
                     onLogin={handleLoginAdmin}
@@ -355,8 +355,8 @@ const Perfil = ({ navigation }) => {
                     styles.header,
                     { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
                 ]}>
-                    <TouchableOpacity 
-                        onPress={() => setVistaActual('inicio')} 
+                    <TouchableOpacity
+                        onPress={() => setVistaActual('inicio')}
                         style={styles.backButton}
                         activeOpacity={0.7}
                     >
@@ -371,7 +371,7 @@ const Perfil = ({ navigation }) => {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <LoginForm
+                    <FormularioLogin
                         onLogin={handleLogin}
                         onSwitchToRegister={() => setVistaActual('registro')}
                         cargando={cargando}
@@ -389,8 +389,8 @@ const Perfil = ({ navigation }) => {
                     styles.header,
                     { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
                 ]}>
-                    <TouchableOpacity 
-                        onPress={() => setVistaActual('inicio')} 
+                    <TouchableOpacity
+                        onPress={() => setVistaActual('inicio')}
                         style={styles.backButton}
                         activeOpacity={0.7}
                     >
@@ -405,7 +405,7 @@ const Perfil = ({ navigation }) => {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <RegisterForm
+                    <FormularioRegistro
                         onRegister={handleRegistro}
                         onSwitchToLogin={() => setVistaActual('login')}
                         cargando={cargando}
@@ -422,7 +422,7 @@ const Perfil = ({ navigation }) => {
                 styles.header,
                 { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
             ]}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => navigation.navigate('Inicio')}
                     activeOpacity={0.7}
@@ -438,7 +438,7 @@ const Perfil = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.contenido}>
-                    <PerfilCard usuario={usuarioActivo} />
+                    <TarjetaPerfil usuario={usuarioActivo} />
 
                     <ListaPedidos
                         pedidos={pedidos}
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: '700',
         color: '#1A1A1A',
         flex: 1,

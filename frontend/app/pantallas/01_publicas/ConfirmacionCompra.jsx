@@ -1,26 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { 
-    View, 
-    Text, 
-    TextInput, 
-    TouchableOpacity, 
-    ScrollView, 
-    StyleSheet, 
-    Alert, 
-    ActivityIndicator, 
+import { useEffect, useState } from 'react';
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    ScrollView,
+    StyleSheet,
+    Alert,
+    ActivityIndicator,
     Modal,
     Platform,
     StatusBar,
-    Animated
+    Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useCarrito } from '../contexto/CarritoContext';
-import { crearPedido } from '../servicios/api';
+import { useCarrito } from '../../contexto/CarritoContext';
+import { crearPedido } from '../../servicios/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ConfirmacionCompra = ({ navigation }) => {
     const { carrito, vaciarCarrito, obtenerTotal } = useCarrito();
-    const [cargando, setCargando] = useState(false);
     const [usuarioActivo, setUsuarioActivo] = useState(null);
     const [mostrarModalPago, setMostrarModalPago] = useState(false);
     const [procesandoPago, setProcesandoPago] = useState(false);
@@ -65,6 +64,29 @@ const ConfirmacionCompra = ({ navigation }) => {
             color: '#722F87',
             descripcion: 'Pago rápido con billetera digital'
         }
+    ];
+
+    // Calcular el paso actual basado en los datos completados
+    useEffect(() => {
+        const contactoCompleto = formData.nombre_cliente && formData.email && formData.telefono;
+        const envioCompleto = formData.direccion;
+        const pagoCompleto = formData.metodo_pago;
+
+        if (pagoCompleto && envioCompleto && contactoCompleto) {
+            setPasoActual(3);
+        } else if (envioCompleto && contactoCompleto) {
+            setPasoActual(2);
+        } else if (contactoCompleto) {
+            setPasoActual(2);
+        } else {
+            setPasoActual(1);
+        }
+    }, [formData]);
+
+    const pasos = [
+        { numero: 1, titulo: 'Contacto', icono: 'person-outline', completado: pasoActual > 1 },
+        { numero: 2, titulo: 'Envío', icono: 'location-outline', completado: pasoActual > 2 },
+        { numero: 3, titulo: 'Pago', icono: 'card-outline', completado: pasoActual > 3 }
     ];
 
     const handleChange = (campo, valor) => {
@@ -307,7 +329,11 @@ const ConfirmacionCompra = ({ navigation }) => {
         <View style={styles.formularioPago}>
             <View style={styles.yapeHeader}>
                 <View style={styles.yapeLogoContainer}>
-                    <Ionicons name="phone-portrait" size={32} color="#FFF" />
+                    <Image
+                        source={require('../../../assets/yape_icon.png')}
+                        style={styles.yapeIcon}
+                        resizeMode="contain"
+                    />
                 </View>
                 <Text style={styles.yapeTitle}>Pago con Yape</Text>
             </View>
@@ -434,227 +460,271 @@ const ConfirmacionCompra = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
+            {/* Header minimalista */}
             <View style={[
                 styles.header,
                 { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
             ]}>
-                <TouchableOpacity 
-                    onPress={() => navigation.goBack()} 
+                <TouchableOpacity
+                    onPress={() => navigation.goBack()}
                     style={styles.backButton}
                     activeOpacity={0.7}
                 >
                     <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Finalizar compra</Text>
+                <Text style={styles.headerTitle}>Checkout</Text>
                 <View style={styles.placeholder} />
             </View>
 
-            <ScrollView 
-                style={styles.scroll} 
+            {/* Indicador de progreso renovado */}
+            <View style={styles.progressContainer}>
+                {pasos.map((paso, index) => (
+                    <View key={paso.numero} style={styles.pasoWrapper}>
+                        <View style={styles.pasoItem}>
+                            <View style={[
+                                styles.pasoCirculo,
+                                paso.completado && styles.pasoCompletado,
+                                pasoActual === paso.numero && styles.pasoActivo
+                            ]}>
+                                {paso.completado ? (
+                                    <Ionicons name="checkmark-circle" size={24} color="#FFF" />
+                                ) : (
+                                    <Ionicons name={paso.icono} size={20}
+                                        color={pasoActual === paso.numero ? "#FFF" : "#9CA3AF"} />
+                                )}
+                            </View>
+                            <Text style={[
+                                styles.pasoTexto,
+                                (paso.completado || pasoActual === paso.numero) && styles.pasoTextoActivo
+                            ]}>
+                                {paso.titulo}
+                            </Text>
+                        </View>
+                        {index < pasos.length - 1 && (
+                            <View style={[
+                                styles.lineaConexion,
+                                (paso.completado || (pasoActual > paso.numero)) && styles.lineaCompletada
+                            ]} />
+                        )}
+                    </View>
+                ))}
+            </View>
+
+            <ScrollView
+                style={styles.scroll}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {/* Resumen del pedido */}
-                <View style={styles.resumenCard}>
-                    <View style={styles.resumenHeader}>
-                        <Ionicons name="receipt-outline" size={24} color="#3B82F6" />
-                        <Text style={styles.resumenTitle}>Resumen del pedido</Text>
-                    </View>
-                    <View style={styles.resumenRow}>
-                        <Text style={styles.resumenLabel}>Productos ({carrito.length})</Text>
-                        <Text style={styles.resumenValor}>S/ {obtenerTotal().toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.resumenRow}>
-                        <View style={styles.envioLabel}>
-                            <Ionicons name="rocket-outline" size={16} color="#10B981" />
-                            <Text style={styles.resumenLabel}>Envío</Text>
-                        </View>
-                        <Text style={styles.envioGratis}>GRATIS</Text>
-                    </View>
-                    <View style={styles.divider} />
-                    <View style={styles.resumenRow}>
-                        <Text style={styles.totalLabel}>Total a pagar</Text>
-                        <View style={styles.totalContainer}>
-                            <Text style={styles.totalMoneda}>S/</Text>
-                            <Text style={styles.totalValor}>{obtenerTotal().toFixed(2)}</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Prompt para iniciar sesión */}
-                {!usuarioActivo && (
-                    <View style={styles.loginPrompt}>
-                        <Ionicons name="person-circle-outline" size={24} color="#3B82F6" />
-                        <View style={styles.loginPromptContent}>
-                            <Text style={styles.loginPromptTexto}>
-                                ¿Ya tienes cuenta?{' '}
-                                <Text style={styles.loginLink} onPress={() => navigation.navigate('Perfil')}>
-                                    Inicia sesión
-                                </Text>
-                            </Text>
-                            <Text style={styles.loginPromptSubtexto}>
-                                Para ver tu historial de pedidos
-                            </Text>
-                        </View>
-                    </View>
-                )}
-
-                {/* Datos personales */}
-                <View style={styles.seccion}>
-                    <View style={styles.seccionHeader}>
-                        <Ionicons name="person-outline" size={20} color="#1A1A1A" />
-                        <Text style={styles.seccionTitulo}>Datos de contacto</Text>
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Nombre completo</Text>
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="person-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Juan Pérez"
-                                value={formData.nombre_cliente}
-                                onChangeText={(text) => handleChange('nombre_cliente', text)}
-                                placeholderTextColor="#9CA3AF"
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Correo electrónico</Text>
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="mail-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="correo@ejemplo.com"
-                                value={formData.email}
-                                onChangeText={(text) => handleChange('email', text)}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                placeholderTextColor="#9CA3AF"
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Teléfono</Text>
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="call-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="987654321"
-                                value={formData.telefono}
-                                onChangeText={(text) => handleChange('telefono', text)}
-                                keyboardType="phone-pad"
-                                maxLength={9}
-                                placeholderTextColor="#9CA3AF"
-                            />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Dirección de entrega */}
-                <View style={styles.seccion}>
-                    <View style={styles.seccionHeader}>
-                        <Ionicons name="location-outline" size={20} color="#1A1A1A" />
-                        <Text style={styles.seccionTitulo}>Dirección de entrega</Text>
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Dirección completa</Text>
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="home-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                style={[styles.input, styles.inputMultiline]}
-                                placeholder="Av. Principal 123, Distrito, Ciudad"
-                                value={formData.direccion}
-                                onChangeText={(text) => handleChange('direccion', text)}
-                                multiline
-                                numberOfLines={3}
-                                placeholderTextColor="#9CA3AF"
-                            />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Métodos de pago */}
-                <View style={styles.seccion}>
-                    <View style={styles.seccionHeader}>
-                        <Ionicons name="wallet-outline" size={20} color="#1A1A1A" />
-                        <Text style={styles.seccionTitulo}>Método de pago</Text>
-                    </View>
-
-                    {metodosPago.map(metodo => (
-                        <View key={metodo.id} style={styles.metodoPagoWrapper}>
+                {/* Columnas lado a lado en tablets/landscape */}
+                <View style={styles.mainContent}>
+                    {/* Columna Izquierda: Formularios */}
+                    <View style={styles.formularioColumn}>
+                        {/* Prompt login compacto */}
+                        {!usuarioActivo && (
                             <TouchableOpacity
-                                style={[
-                                    styles.metodoPagoCard,
-                                    metodoPagoExpandido === metodo.id && styles.metodoPagoCardActivo
-                                ]}
-                                onPress={() => toggleMetodoPago(metodo.id)}
-                                activeOpacity={0.7}
+                                style={styles.loginPromptCompact}
+                                onPress={() => navigation.navigate('Perfil')}
+                                activeOpacity={0.8}
                             >
-                                <View style={[styles.metodoPagoIcono, { backgroundColor: metodo.color + '15' }]}>
-                                    <Ionicons name={metodo.icono} size={24} color={metodo.color} />
-                                </View>
-                                <View style={styles.metodoPagoInfo}>
-                                    <Text style={styles.metodoPagoNombre}>{metodo.nombre}</Text>
-                                    <Text style={styles.metodoPagoDescripcion}>{metodo.descripcion}</Text>
-                                </View>
-                                <Ionicons 
-                                    name={metodoPagoExpandido === metodo.id ? "chevron-up" : "chevron-down"} 
-                                    size={24} 
-                                    color="#6B7280" 
-                                />
+                                <Ionicons name="person-circle-outline" size={20} color="#3B82F6" />
+                                <Text style={styles.loginPromptTexto}>
+                                    ¿Ya tienes cuenta? <Text style={styles.loginLink}>Inicia sesión</Text>
+                                </Text>
                             </TouchableOpacity>
+                        )}
 
-                            {metodoPagoExpandido === metodo.id && (
-                                metodo.id === 'tarjeta'
-                                    ? renderFormularioTarjeta()
-                                    : renderFormularioYape()
-                            )}
+                        {/* Datos personales - diseño más limpio */}
+                        <View style={styles.seccion}>
+                            <View style={styles.seccionHeaderCompact}>
+                                <Ionicons name="person-outline" size={18} color="#3B82F6" />
+                                <Text style={styles.seccionTitulo}>Información de contacto</Text>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputContainer}>
+                                    <View style={styles.inputWrapper}>
+                                        <Ionicons name="person-outline" size={18} color="#6B7280" style={styles.inputIcon} />
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="Nombre completo"
+                                            value={formData.nombre_cliente}
+                                            onChangeText={(text) => handleChange('nombre_cliente', text)}
+                                            placeholderTextColor="#9CA3AF"
+                                        />
+                                    </View>
+                                </View>
+
+                                <View style={styles.rowInputs}>
+                                    <View style={[styles.inputContainer, styles.inputHalfRow]}>
+                                        <View style={styles.inputWrapper}>
+                                            <Ionicons name="mail-outline" size={18} color="#6B7280" style={styles.inputIcon} />
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Email"
+                                                value={formData.email}
+                                                onChangeText={(text) => handleChange('email', text)}
+                                                keyboardType="email-address"
+                                                autoCapitalize="none"
+                                                placeholderTextColor="#9CA3AF"
+                                            />
+                                        </View>
+                                    </View>
+
+                                    <View style={[styles.inputContainer, styles.inputHalfRow]}>
+                                        <View style={styles.inputWrapper}>
+                                            <Ionicons name="call-outline" size={18} color="#6B7280" style={styles.inputIcon} />
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Teléfono"
+                                                value={formData.telefono}
+                                                onChangeText={(text) => handleChange('telefono', text)}
+                                                keyboardType="phone-pad"
+                                                maxLength={9}
+                                                placeholderTextColor="#9CA3AF"
+                                            />
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
                         </View>
-                    ))}
-                </View>
 
-                {/* Trust signals */}
-                <View style={styles.trustSignals}>
-                    <View style={styles.trustItem}>
-                        <Ionicons name="shield-checkmark" size={20} color="#10B981" />
-                        <Text style={styles.trustTexto}>Pago seguro</Text>
+                        {/* Dirección - más compacta */}
+                        <View style={styles.seccion}>
+                            <View style={styles.seccionHeaderCompact}>
+                                <Ionicons name="location-outline" size={18} color="#3B82F6" />
+                                <Text style={styles.seccionTitulo}>Dirección de entrega</Text>
+                            </View>
+
+                            <View style={styles.inputContainer}>
+                                <View style={[styles.inputWrapper, styles.inputWrapperTextarea]}>
+                                    <Ionicons name="home-outline" size={18} color="#6B7280" style={styles.inputIconTop} />
+                                    <TextInput
+                                        style={[styles.input, styles.inputMultiline]}
+                                        placeholder="Calle, número, distrito, ciudad"
+                                        value={formData.direccion}
+                                        onChangeText={(text) => handleChange('direccion', text)}
+                                        multiline
+                                        numberOfLines={2}
+                                        placeholderTextColor="#9CA3AF"
+                                    />
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Métodos de pago - tarjetas horizontales */}
+                        <View style={styles.seccion}>
+                            <View style={styles.seccionHeaderCompact}>
+                                <Ionicons name="wallet-outline" size={18} color="#3B82F6" />
+                                <Text style={styles.seccionTitulo}>Método de pago</Text>
+                            </View>
+
+                            <View style={styles.metodosPagoGrid}>
+                                {metodosPago.map(metodo => (
+                                    <View key={metodo.id} style={styles.metodoPagoWrapper}>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.metodoPagoCardCompact,
+                                                metodoPagoExpandido === metodo.id && styles.metodoPagoCardActivo
+                                            ]}
+                                            onPress={() => toggleMetodoPago(metodo.id)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <View style={[styles.metodoPagoIcono, { backgroundColor: metodo.color + '15' }]}>
+                                                <Ionicons name={metodo.icono} size={22} color={metodo.color} />
+                                            </View>
+                                            <View style={styles.metodoPagoInfo}>
+                                                <Text style={styles.metodoPagoNombre}>{metodo.nombre}</Text>
+                                                <Text style={styles.metodoPagoDescripcion}>{metodo.descripcion}</Text>
+                                            </View>
+                                            <Ionicons
+                                                name={metodoPagoExpandido === metodo.id
+                                                    ? "checkmark-circle"
+                                                    : "ellipse-outline"}
+                                                size={24}
+                                                color={metodoPagoExpandido === metodo.id ? metodo.color : "#D1D5DB"}
+                                            />
+                                        </TouchableOpacity>
+
+                                        {metodoPagoExpandido === metodo.id && (
+                                            metodo.id === 'tarjeta'
+                                                ? renderFormularioTarjeta()
+                                                : renderFormularioYape()
+                                        )}
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
                     </View>
-                    <View style={styles.trustItem}>
-                        <Ionicons name="lock-closed" size={20} color="#10B981" />
-                        <Text style={styles.trustTexto}>Encriptación SSL</Text>
-                    </View>
-                    <View style={styles.trustItem}>
-                        <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                        <Text style={styles.trustTexto}>Compra protegida</Text>
+
+                    {/* Columna Derecha: Resumen sticky */}
+                    <View style={styles.resumenColumn}>
+                        <View style={styles.resumenCardCompact}>
+                            <View style={styles.resumenHeaderCompact}>
+                                <Ionicons name="receipt-outline" size={20} color="#3B82F6" />
+                                <Text style={styles.resumenTitle}>Resumen</Text>
+                            </View>
+
+                            <View style={styles.resumenBody}>
+                                <View style={styles.resumenRow}>
+                                    <Text style={styles.resumenLabel}>Subtotal ({carrito.length} items)</Text>
+                                    <Text style={styles.resumenValor}>S/ {obtenerTotal().toFixed(2)}</Text>
+                                </View>
+
+                                <View style={styles.resumenRow}>
+                                    <View style={styles.envioLabelCompact}>
+                                        <Ionicons name="rocket-outline" size={14} color="#10B981" />
+                                        <Text style={styles.resumenLabel}>Envío</Text>
+                                    </View>
+                                    <Text style={styles.envioGratis}>GRATIS</Text>
+                                </View>
+
+                                <View style={styles.dividerThin} />
+
+                                <View style={styles.totalRow}>
+                                    <Text style={styles.totalLabel}>Total</Text>
+                                    <View style={styles.totalContainer}>
+                                        <Text style={styles.totalMoneda}>S/</Text>
+                                        <Text style={styles.totalValor}>{obtenerTotal().toFixed(2)}</Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            {/* Trust badges compactos */}
+                            <View style={styles.trustBadges}>
+                                <View style={styles.trustBadgeItem}>
+                                    <Ionicons name="shield-checkmark" size={16} color="#10B981" />
+                                    <Text style={styles.trustBadgeTexto}>Pago seguro</Text>
+                                </View>
+                                <View style={styles.trustBadgeItem}>
+                                    <Ionicons name="lock-closed" size={16} color="#10B981" />
+                                    <Text style={styles.trustBadgeTexto}>Encriptado</Text>
+                                </View>
+                            </View>
+                        </View>
                     </View>
                 </View>
             </ScrollView>
 
-            {/* Botón de pago fijo */}
+            {/* Botón pagar rediseñado */}
             <View style={styles.bottomBar}>
                 <TouchableOpacity
                     style={[
                         styles.botonPagar,
-                        (!formData.metodo_pago || cargando) && styles.botonPagarDeshabilitado
+                        !formData.metodo_pago && styles.botonPagarDeshabilitado
                     ]}
                     onPress={handleConfirmarCompra}
-                    disabled={!formData.metodo_pago || cargando}
-                    activeOpacity={0.8}
+                    disabled={!formData.metodo_pago}
+                    activeOpacity={0.85}
                 >
-                    {cargando ? (
+                    {procesandoPago ? (
                         <ActivityIndicator color="#FFF" />
                     ) : (
                         <>
                             <View style={styles.botonPagarContent}>
-                                <Ionicons name="lock-closed" size={20} color="#FFF" />
+                                <Ionicons name="shield-checkmark-outline" size={22} color="#FFF" />
                                 <Text style={styles.textoPagar}>Pagar S/ {obtenerTotal().toFixed(2)}</Text>
                             </View>
-                            <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                            <Ionicons name="arrow-forward-circle" size={24} color="#FFF" />
                         </>
                     )}
                 </TouchableOpacity>
@@ -676,14 +746,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         backgroundColor: '#FFFFFF',
         paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
+        borderBottomColor: '#E5E7EB',
     },
     backButton: {
         width: 40,
@@ -694,186 +759,217 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '700',
         color: '#1A1A1A',
-        flex: 1,
-        textAlign: 'center',
+        letterSpacing: -0.5,
     },
     placeholder: {
         width: 40,
     },
+
+    // Indicador de progreso nuevo
+    progressContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 20,
+        paddingHorizontal: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    pasoWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    pasoItem: {
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+        zIndex: 1,
+    },
+    pasoCirculo: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#F9FAFB',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    pasoActivo: {
+        backgroundColor: '#3B82F6',
+        borderColor: '#3B82F6',
+        shadowColor: '#3B82F6',
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+        transform: [{ scale: 1.05 }],
+    },
+    pasoCompletado: {
+        backgroundColor: '#10B981',
+        borderColor: '#10B981',
+        shadowColor: '#10B981',
+        shadowOpacity: 0.2,
+    },
+    pasoTexto: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#9CA3AF',
+        textAlign: 'center',
+    },
+    pasoTextoActivo: {
+        color: '#1A1A1A',
+        fontWeight: '700',
+    },
+    lineaConexion: {
+        height: 3,
+        flex: 1,
+        backgroundColor: '#E5E7EB',
+        marginHorizontal: -8,
+        marginTop: -30,
+        borderRadius: 2,
+    },
+    lineaCompletada: {
+        backgroundColor: '#10B981',
+    },
+
     scroll: {
         flex: 1,
     },
     scrollContent: {
         paddingBottom: 100,
     },
-    resumenCard: {
-        backgroundColor: '#FFFFFF',
-        margin: 16,
-        padding: 20,
-        borderRadius: 16,
-        shadowColor: '#3B82F6',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 4,
+
+    // Layout de 2 columnas
+    mainContent: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        gap: 16,
+        flexWrap: 'wrap',
     },
-    resumenHeader: {
+    formularioColumn: {
+        flex: 1,
+        minWidth: 300,
+    },
+    resumenColumn: {
+        width: 445,
+        maxWidth: '100%',
+    },
+
+    // Login prompt compacto
+    loginPromptCompact: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#EFF6FF',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
         marginBottom: 16,
         gap: 10,
-    },
-    resumenTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1A1A1A',
-    },
-    resumenRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    resumenLabel: {
-        fontSize: 14,
-        color: '#6B7280',
-        fontWeight: '500',
-    },
-    resumenValor: {
-        fontSize: 14,
-        color: '#1A1A1A',
-        fontWeight: '600',
-    },
-    envioLabel: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    envioGratis: {
-        fontSize: 14,
-        color: '#10B981',
-        fontWeight: '700',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#E5E7EB',
-        marginVertical: 12,
-    },
-    totalLabel: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1A1A1A',
-    },
-    totalContainer: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-    },
-    totalMoneda: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#3B82F6',
-        marginRight: 4,
-    },
-    totalValor: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#3B82F6',
-    },
-    loginPrompt: {
-        flexDirection: 'row',
-        backgroundColor: '#EFF6FF',
-        marginHorizontal: 16,
-        marginBottom: 16,
-        padding: 16,
-        borderRadius: 12,
         borderWidth: 1,
         borderColor: '#BFDBFE',
-        gap: 12,
-    },
-    loginPromptContent: {
-        flex: 1,
     },
     loginPromptTexto: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#1A1A1A',
         fontWeight: '500',
-        marginBottom: 4,
+        flex: 1,
     },
     loginLink: {
         color: '#3B82F6',
         fontWeight: '700',
     },
-    loginPromptSubtexto: {
-        fontSize: 12,
-        color: '#6B7280',
-    },
+
+    // Secciones más limpias
     seccion: {
         backgroundColor: '#FFFFFF',
-        marginHorizontal: 16,
         marginBottom: 16,
-        padding: 20,
-        borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 2,
+        padding: 18,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
     },
-    seccionHeader: {
+    seccionHeaderCompact: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 14,
         gap: 8,
     },
     seccionTitulo: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '700',
         color: '#1A1A1A',
     },
-    inputContainer: {
-        marginBottom: 16,
+
+    // Inputs rediseñados
+    inputGroup: {
+        gap: 12,
     },
-    inputLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#374151',
-        marginBottom: 8,
+    inputContainer: {
+        marginBottom: 0,
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F9FAFB',
-        borderRadius: 12,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: '#E5E7EB',
         paddingHorizontal: 12,
+        height: 48,
+    },
+    inputWrapperTextarea: {
+        height: 70,
+        alignItems: 'flex-start',
+        paddingTop: 12,
     },
     inputIcon: {
-        marginRight: 8,
+        marginRight: 10,
+    },
+    inputIconTop: {
+        marginRight: 10,
+        marginTop: 2,
     },
     input: {
         flex: 1,
-        fontSize: 15,
+        fontSize: 14,
         color: '#1A1A1A',
-        paddingVertical: 14,
+        fontWeight: '500',
     },
     inputMultiline: {
-        height: 80,
         textAlignVertical: 'top',
-        paddingTop: 14,
+    },
+    rowInputs: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    inputHalfRow: {
+        flex: 1,
+    },
+
+    // Métodos de pago más elegantes
+    metodosPagoGrid: {
+        gap: 12,
     },
     metodoPagoWrapper: {
-        marginBottom: 12,
+        marginBottom: 0,
     },
-    metodoPagoCard: {
+    metodoPagoCardCompact: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F9FAFB',
-        padding: 16,
-        borderRadius: 12,
+        padding: 14,
+        borderRadius: 10,
         borderWidth: 2,
         borderColor: '#E5E7EB',
         gap: 12,
@@ -883,9 +979,9 @@ const styles = StyleSheet.create({
         borderColor: '#3B82F6',
     },
     metodoPagoIcono: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -893,52 +989,52 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     metodoPagoNombre: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '700',
         color: '#1A1A1A',
         marginBottom: 2,
     },
     metodoPagoDescripcion: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#6B7280',
     },
+
+    // Formulario de pago
     formularioPago: {
         backgroundColor: '#F9FAFB',
-        padding: 16,
+        padding: 14,
         marginTop: 12,
-        borderRadius: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     tarjetasAceptadas: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginBottom: 20,
-        gap: 12,
+        marginBottom: 16,
+        gap: 10,
     },
     tarjetaBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFF',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 6,
+        gap: 5,
         borderWidth: 1,
         borderColor: '#E5E7EB',
     },
     tarjetaBadgeTexto: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '700',
         color: '#374151',
     },
     inputPago: {
         flex: 1,
-        fontSize: 15,
+        fontSize: 14,
         color: '#1A1A1A',
-        paddingVertical: 14,
-    },
-    rowInputs: {
-        flexDirection: 'row',
-        gap: 12,
+        fontWeight: '500',
     },
     inputHalf: {
         flex: 1,
@@ -946,7 +1042,7 @@ const styles = StyleSheet.create({
     infoSeguridad: {
         flexDirection: 'row',
         backgroundColor: '#ECFDF5',
-        padding: 12,
+        padding: 10,
         borderRadius: 8,
         marginTop: 8,
         gap: 8,
@@ -954,87 +1050,184 @@ const styles = StyleSheet.create({
     },
     infoSeguridadTexto: {
         flex: 1,
-        fontSize: 12,
+        fontSize: 11,
         color: '#065F46',
-        lineHeight: 16,
+        lineHeight: 15,
+        fontWeight: '500',
     },
+
+    // Yape
     yapeHeader: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
     },
     yapeLogoContainer: {
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: '#722F87',
+        backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 10,
+        shadowColor: '#722F87',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+        borderWidth: 2,
+        borderColor: '#F3F4F6',
+    },
+    yapeIcon: {
+        width: 60,
+        height: 60,
+        borderRadius: 50,
+
     },
     yapeTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '700',
         color: '#722F87',
     },
     instruccionesYape: {
         backgroundColor: '#FFF',
-        padding: 16,
-        borderRadius: 12,
-        marginTop: 12,
+        padding: 14,
+        borderRadius: 10,
+        marginTop: 10,
     },
     instruccionesTitle: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '700',
         color: '#1A1A1A',
-        marginBottom: 12,
+        marginBottom: 10,
     },
     instruccionItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 10,
-        gap: 12,
+        marginBottom: 8,
+        gap: 10,
     },
     numeroPaso: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
         backgroundColor: '#722F87',
         justifyContent: 'center',
         alignItems: 'center',
     },
     numeroTexto: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '700',
         color: '#FFF',
     },
     instruccionTexto: {
         flex: 1,
-        fontSize: 14,
+        fontSize: 13,
         color: '#374151',
     },
-    trustSignals: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+
+    // Resumen compacto
+    resumenCardCompact: {
         backgroundColor: '#FFFFFF',
-        marginHorizontal: 16,
-        marginBottom: 16,
-        padding: 16,
         borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        overflow: 'hidden',
     },
-    trustItem: {
+    resumenHeaderCompact: {
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        padding: 16,
+        gap: 8,
+        backgroundColor: '#F9FAFB',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
     },
-    trustTexto: {
-        fontSize: 11,
+    resumenTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1A1A1A',
+    },
+    resumenBody: {
+        padding: 16,
+    },
+    resumenRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    resumenLabel: {
+        fontSize: 13,
         color: '#6B7280',
+        fontWeight: '500',
+    },
+    resumenValor: {
+        fontSize: 13,
+        color: '#1A1A1A',
         fontWeight: '600',
     },
+    envioLabelCompact: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+    },
+    envioGratis: {
+        fontSize: 13,
+        color: '#10B981',
+        fontWeight: '700',
+    },
+    dividerThin: {
+        height: 1,
+        backgroundColor: '#E5E7EB',
+        marginVertical: 12,
+    },
+    totalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    totalLabel: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1A1A1A',
+    },
+    totalContainer: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+    },
+    totalMoneda: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#3B82F6',
+        marginRight: 3,
+    },
+    totalValor: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#3B82F6',
+    },
+
+    // Trust badges
+    trustBadges: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        padding: 14,
+        backgroundColor: '#F0FDF4',
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+    },
+    trustBadgeItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+    },
+    trustBadgeTexto: {
+        fontSize: 10,
+        color: '#065F46',
+        fontWeight: '600',
+    },
+
+    // Barra inferior
     bottomBar: {
         position: 'absolute',
         bottom: 0,
@@ -1042,9 +1235,9 @@ const styles = StyleSheet.create({
         right: 0,
         backgroundColor: '#FFFFFF',
         padding: 16,
-        paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+        paddingBottom: Platform.OS === 'ios' ? 28 : 16,
         borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+        borderTopColor: '#E5E7EB',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.08,
@@ -1054,7 +1247,8 @@ const styles = StyleSheet.create({
     botonPagar: {
         flexDirection: 'row',
         backgroundColor: '#3B82F6',
-        padding: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -1079,6 +1273,8 @@ const styles = StyleSheet.create({
         fontSize: 17,
         fontWeight: '700',
     },
+
+    // Modal
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.7)',

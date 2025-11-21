@@ -11,15 +11,19 @@ dotenv.config();
 
 const app = express();
 
-// Configuración de CORS
+// Configuración de CORS - Permitir todas las conexiones para desarrollo móvil
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  origin: '*', // Permitir todos los orígenes para desarrollo móvil
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: false, // Cambiar a false cuando origin es '*'
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
+
+// Manejar preflight requests explícitamente
+app.options('*', cors(corsOptions));
 
 // Middleware para parsear JSON
 app.use(express.json({ limit: '10mb' }));

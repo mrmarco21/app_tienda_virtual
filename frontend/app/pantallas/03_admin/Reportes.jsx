@@ -18,7 +18,7 @@ const { width } = Dimensions.get('window');
 
 const Reportes = ({ navigation }) => {
     const [cargando, setCargando] = useState(false);
-    const [periodo, setPeriodo] = useState('mes'); // 'hoy', 'semana', 'mes', 'año'
+    const [periodo, setPeriodo] = useState('mes');
     const [reporteData, setReporteData] = useState({
         ventas: {
             total: 0,
@@ -58,22 +58,19 @@ const Reportes = ({ navigation }) => {
             const pedidos = pedidosData.pedidos || pedidosData.data || [];
 
             const productosData = await obtenerProductos();
-            const productos = productosData.data || productosData || [];
+            const datos = productosData.data || productosData || {};
+            const productos = datos.activos || datos || [];
 
-            // Filtrar pedidos según el período
             const pedidosFiltrados = filtrarPorPeriodo(pedidos, periodo);
 
-            // Calcular estadísticas de ventas
             const totalVentas = pedidosFiltrados.reduce((sum, p) => sum + parseFloat(p.total || 0), 0);
             const cantidadPedidos = pedidosFiltrados.length;
             const promedioVenta = cantidadPedidos > 0 ? totalVentas / cantidadPedidos : 0;
 
-            // Calcular estados de pedidos
             const pendientes = pedidosFiltrados.filter(p => p.estado?.toLowerCase() === 'pendiente').length;
             const completados = pedidosFiltrados.filter(p => p.estado?.toLowerCase() === 'completado').length;
             const cancelados = pedidosFiltrados.filter(p => p.estado?.toLowerCase() === 'cancelado').length;
 
-            // Métodos de pago
             const metodosPago = {
                 efectivo: pedidosFiltrados.filter(p => p.metodo_pago?.toLowerCase().includes('efectivo')).length,
                 tarjeta: pedidosFiltrados.filter(p => p.metodo_pago?.toLowerCase().includes('tarjeta')).length,
@@ -81,11 +78,9 @@ const Reportes = ({ navigation }) => {
                 plin: pedidosFiltrados.filter(p => p.metodo_pago?.toLowerCase().includes('plin')).length
             };
 
-            // Productos con bajo stock
             const bajoStock = productos.filter(p => p.stock > 0 && p.stock < 10);
             const sinStock = productos.filter(p => p.stock === 0).length;
 
-            // Tendencias por día (últimos 7 días)
             const tendencias = calcularTendencias(pedidos);
 
             setReporteData({
@@ -93,7 +88,7 @@ const Reportes = ({ navigation }) => {
                     total: totalVentas,
                     cantidad: cantidadPedidos,
                     promedio: promedioVenta,
-                    crecimiento: 12.5 // Simulado
+                    crecimiento: 12.5
                 },
                 pedidos: {
                     total: cantidadPedidos,
@@ -189,8 +184,8 @@ const Reportes = ({ navigation }) => {
                     <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
                 </TouchableOpacity>
                 <View style={styles.headerTitleContainer}>
-                    <Text style={styles.headerTitle}>Reportes</Text>
-                    <Text style={styles.headerSubtitle}>Análisis de ventas</Text>
+                    <Text style={styles.headerTitle}>Reportes y Análisis</Text>
+                    <Text style={styles.headerSubtitle}>Panel de control de ventas</Text>
                 </View>
                 <TouchableOpacity
                     onPress={cargarReportes}
@@ -219,7 +214,12 @@ const Reportes = ({ navigation }) => {
 
                 {/* Resumen de Ventas */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>💰 Resumen de Ventas</Text>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionIconContainer}>
+                            <Ionicons name="cash" size={20} color="#10B981" />
+                        </View>
+                        <Text style={styles.sectionTitle}>Resumen de Ventas</Text>
+                    </View>
                     <View style={styles.ventasCard}>
                         <View style={styles.ventasHeader}>
                             <View>
@@ -238,14 +238,18 @@ const Reportes = ({ navigation }) => {
 
                         <View style={styles.ventasStats}>
                             <View style={styles.ventasStat}>
-                                <Ionicons name="receipt-outline" size={20} color="#6B7280" />
-                                <Text style={styles.ventasStatLabel}>Pedidos</Text>
+                                <View style={styles.ventasStatIcono}>
+                                    <Ionicons name="receipt" size={20} color="#3B82F6" />
+                                </View>
+                                <Text style={styles.ventasStatLabel}>Total Pedidos</Text>
                                 <Text style={styles.ventasStatValor}>{reporteData.ventas.cantidad}</Text>
                             </View>
                             <View style={styles.ventasStatDivider} />
                             <View style={styles.ventasStat}>
-                                <Ionicons name="calculator-outline" size={20} color="#6B7280" />
-                                <Text style={styles.ventasStatLabel}>Promedio</Text>
+                                <View style={styles.ventasStatIcono}>
+                                    <Ionicons name="calculator" size={20} color="#8B5CF6" />
+                                </View>
+                                <Text style={styles.ventasStatLabel}>Ticket Promedio</Text>
                                 <Text style={styles.ventasStatValor}>
                                     S/ {reporteData.ventas.promedio.toFixed(2)}
                                 </Text>
@@ -256,7 +260,13 @@ const Reportes = ({ navigation }) => {
 
                 {/* Gráfico de Tendencias */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📈 Tendencia de Ventas (7 días)</Text>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionIconContainer}>
+                            <Ionicons name="trending-up" size={20} color="#3B82F6" />
+                        </View>
+                        <Text style={styles.sectionTitle}>Tendencia de Ventas</Text>
+                        <Text style={styles.sectionSubtitle}>(Últimos 7 días)</Text>
+                    </View>
                     <View style={styles.graficoCard}>
                         <View style={styles.grafico}>
                             {reporteData.tendencias.map((dia, index) => {
@@ -275,7 +285,9 @@ const Reportes = ({ navigation }) => {
                                             />
                                         </View>
                                         <Text style={styles.barraDia}>{dia.dia}</Text>
-                                        <Text style={styles.barraCantidad}>{dia.cantidad}</Text>
+                                        <View style={styles.barraCantidadBadge}>
+                                            <Text style={styles.barraCantidad}>{dia.cantidad}</Text>
+                                        </View>
                                     </View>
                                 );
                             })}
@@ -285,20 +297,31 @@ const Reportes = ({ navigation }) => {
 
                 {/* Estado de Pedidos */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📦 Estado de Pedidos</Text>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionIconContainer}>
+                            <Ionicons name="cube" size={20} color="#6366F1" />
+                        </View>
+                        <Text style={styles.sectionTitle}>Estado de Pedidos</Text>
+                    </View>
                     <View style={styles.estadosGrid}>
-                        <View style={[styles.estadoCard, { borderLeftColor: '#F59E0B' }]}>
-                            <Ionicons name="time-outline" size={24} color="#F59E0B" />
+                        <View style={styles.estadoCard}>
+                            <View style={[styles.estadoIcono, { backgroundColor: '#FEF3C7' }]}>
+                                <Ionicons name="time" size={24} color="#F59E0B" />
+                            </View>
                             <Text style={styles.estadoValor}>{reporteData.pedidos.pendientes}</Text>
                             <Text style={styles.estadoLabel}>Pendientes</Text>
                         </View>
-                        <View style={[styles.estadoCard, { borderLeftColor: '#10B981' }]}>
-                            <Ionicons name="checkmark-done-outline" size={24} color="#10B981" />
+                        <View style={styles.estadoCard}>
+                            <View style={[styles.estadoIcono, { backgroundColor: '#D1FAE5' }]}>
+                                <Ionicons name="checkmark-done" size={24} color="#10B981" />
+                            </View>
                             <Text style={styles.estadoValor}>{reporteData.pedidos.completados}</Text>
                             <Text style={styles.estadoLabel}>Completados</Text>
                         </View>
-                        <View style={[styles.estadoCard, { borderLeftColor: '#EF4444' }]}>
-                            <Ionicons name="close-circle-outline" size={24} color="#EF4444" />
+                        <View style={styles.estadoCard}>
+                            <View style={[styles.estadoIcono, { backgroundColor: '#FEE2E2' }]}>
+                                <Ionicons name="close-circle" size={24} color="#EF4444" />
+                            </View>
                             <Text style={styles.estadoValor}>{reporteData.pedidos.cancelados}</Text>
                             <Text style={styles.estadoLabel}>Cancelados</Text>
                         </View>
@@ -307,31 +330,36 @@ const Reportes = ({ navigation }) => {
 
                 {/* Métodos de Pago */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>💳 Métodos de Pago</Text>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionIconContainer}>
+                            <Ionicons name="card" size={20} color="#F59E0B" />
+                        </View>
+                        <Text style={styles.sectionTitle}>Métodos de Pago</Text>
+                    </View>
                     <View style={styles.metodosCard}>
                         <MetodoPagoItem
-                            icono="cash-outline"
+                            icono="cash"
                             label="Efectivo"
                             cantidad={reporteData.metodosPago.efectivo}
                             color="#10B981"
                             total={reporteData.pedidos.total}
                         />
                         <MetodoPagoItem
-                            icono="card-outline"
+                            icono="card"
                             label="Tarjeta"
                             cantidad={reporteData.metodosPago.tarjeta}
                             color="#3B82F6"
                             total={reporteData.pedidos.total}
                         />
                         <MetodoPagoItem
-                            icono="phone-portrait-outline"
+                            icono="phone-portrait"
                             label="Yape"
                             cantidad={reporteData.metodosPago.yape}
                             color="#8B5CF6"
                             total={reporteData.pedidos.total}
                         />
                         <MetodoPagoItem
-                            icono="wallet-outline"
+                            icono="wallet"
                             label="Plin"
                             cantidad={reporteData.metodosPago.plin}
                             color="#F59E0B"
@@ -342,11 +370,16 @@ const Reportes = ({ navigation }) => {
 
                 {/* Inventario */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📊 Estado del Inventario</Text>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionIconContainer}>
+                            <Ionicons name="analytics" size={20} color="#8B5CF6" />
+                        </View>
+                        <Text style={styles.sectionTitle}>Estado del Inventario</Text>
+                    </View>
                     <View style={styles.inventarioCard}>
                         <View style={styles.inventarioItem}>
                             <View style={styles.inventarioIcono}>
-                                <Ionicons name="cube-outline" size={24} color="#3B82F6" />
+                                <Ionicons name="cube" size={24} color="#3B82F6" />
                             </View>
                             <View style={styles.inventarioInfo}>
                                 <Text style={styles.inventarioValor}>{reporteData.productos.total}</Text>
@@ -358,7 +391,7 @@ const Reportes = ({ navigation }) => {
 
                         <View style={styles.inventarioItem}>
                             <View style={[styles.inventarioIcono, { backgroundColor: '#FEF3C7' }]}>
-                                <Ionicons name="alert-circle-outline" size={24} color="#F59E0B" />
+                                <Ionicons name="alert-circle" size={24} color="#F59E0B" />
                             </View>
                             <View style={styles.inventarioInfo}>
                                 <Text style={styles.inventarioValor}>{reporteData.productos.bajoStock.length}</Text>
@@ -370,7 +403,7 @@ const Reportes = ({ navigation }) => {
 
                         <View style={styles.inventarioItem}>
                             <View style={[styles.inventarioIcono, { backgroundColor: '#FEE2E2' }]}>
-                                <Ionicons name="close-circle-outline" size={24} color="#EF4444" />
+                                <Ionicons name="ban" size={24} color="#EF4444" />
                             </View>
                             <View style={styles.inventarioInfo}>
                                 <Text style={styles.inventarioValor}>{reporteData.productos.sinStock}</Text>
@@ -383,16 +416,21 @@ const Reportes = ({ navigation }) => {
                     {reporteData.productos.bajoStock.length > 0 && (
                         <View style={styles.alertaStock}>
                             <View style={styles.alertaHeader}>
-                                <Ionicons name="warning" size={20} color="#F59E0B" />
-                                <Text style={styles.alertaTitle}>Productos con bajo stock</Text>
+                                <View style={styles.alertaIcono}>
+                                    <Ionicons name="warning" size={18} color="#F59E0B" />
+                                </View>
+                                <Text style={styles.alertaTitle}>Productos con stock bajo</Text>
                             </View>
-                            {reporteData.productos.bajoStock.map((producto, index) => (
+                            {reporteData.productos.bajoStock.map((producto) => (
                                 <View key={producto.id} style={styles.alertaItem}>
-                                    <Text style={styles.alertaProducto} numberOfLines={1}>
-                                        {producto.nombre}
-                                    </Text>
+                                    <View style={styles.alertaProductoInfo}>
+                                        <Ionicons name="cube-outline" size={16} color="#92400E" />
+                                        <Text style={styles.alertaProducto} numberOfLines={1}>
+                                            {producto.nombre}
+                                        </Text>
+                                    </View>
                                     <View style={styles.alertaStockBadge}>
-                                        <Text style={styles.alertaStockTexto}>{producto.stock} unidades</Text>
+                                        <Text style={styles.alertaStockTexto}>{producto.stock}</Text>
                                     </View>
                                 </View>
                             ))}
@@ -415,12 +453,12 @@ const MetodoPagoItem = ({ icono, label, cantidad, color, total }) => {
                 <View style={[styles.metodoIcono, { backgroundColor: color + '15' }]}>
                     <Ionicons name={icono} size={20} color={color} />
                 </View>
-                <View>
+                <View style={styles.metodoTextos}>
                     <Text style={styles.metodoLabel}>{label}</Text>
                     <Text style={styles.metodoCantidad}>{cantidad} pedidos</Text>
                 </View>
             </View>
-            <View style={styles.metodoPorcentaje}>
+            <View style={[styles.metodoPorcentaje, { backgroundColor: color + '10' }]}>
                 <Text style={[styles.metodoPorcentajeTexto, { color }]}>{porcentaje}%</Text>
             </View>
         </View>
@@ -430,7 +468,7 @@ const MetodoPagoItem = ({ icono, label, cantidad, color, total }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8F9FA',
+        backgroundColor: '#F9FAFB',
     },
     header: {
         flexDirection: 'row',
@@ -466,6 +504,7 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#6B7280',
         marginTop: 2,
+        fontWeight: '500',
     },
     refreshButton: {
         width: 40,
@@ -484,18 +523,21 @@ const styles = StyleSheet.create({
     periodosContainer: {
         flexDirection: 'row',
         gap: 8,
-        marginBottom: 20,
+        marginBottom: 24,
     },
     periodoChip: {
         flex: 1,
-        paddingVertical: 10,
+        paddingVertical: 12,
         paddingHorizontal: 12,
         borderRadius: 12,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     periodoActivo: {
         backgroundColor: '#3B82F6',
+        borderColor: '#3B82F6',
     },
     periodoTexto: {
         fontSize: 14,
@@ -508,11 +550,29 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 24,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+        gap: 8,
+    },
+    sectionIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: '#F3F4F6',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: '700',
         color: '#1A1A1A',
-        marginBottom: 12,
+    },
+    sectionSubtitle: {
+        fontSize: 13,
+        color: '#9CA3AF',
+        fontWeight: '500',
     },
     ventasCard: {
         backgroundColor: '#FFFFFF',
@@ -528,7 +588,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 20,
+        marginBottom: 24,
     },
     ventasLabel: {
         fontSize: 14,
@@ -537,7 +597,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     ventasTotal: {
-        fontSize: 32,
+        fontSize: 36,
         fontWeight: '700',
         color: '#10B981',
     },
@@ -565,17 +625,27 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
     },
+    ventasStatIcono: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
     ventasStatDivider: {
         width: 1,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: '#E5E7EB',
         marginHorizontal: 16,
     },
     ventasStatLabel: {
         fontSize: 12,
         color: '#9CA3AF',
         fontWeight: '600',
-        marginTop: 8,
+        marginTop: 4,
         marginBottom: 4,
+        textAlign: 'center',
     },
     ventasStatValor: {
         fontSize: 18,
@@ -609,21 +679,28 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     barra: {
-        width: 24,
-        borderRadius: 6,
+        width: 28,
+        borderRadius: 8,
         minHeight: 4,
     },
     barraDia: {
         fontSize: 11,
         color: '#6B7280',
-        fontWeight: '600',
+        fontWeight: '700',
+        marginTop: 6,
+        textTransform: 'capitalize',
+    },
+    barraCantidadBadge: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
         marginTop: 4,
     },
     barraCantidad: {
         fontSize: 10,
-        color: '#9CA3AF',
-        fontWeight: '500',
-        marginTop: 2,
+        color: '#6B7280',
+        fontWeight: '700',
     },
     estadosGrid: {
         flexDirection: 'row',
@@ -632,27 +709,34 @@ const styles = StyleSheet.create({
     estadoCard: {
         flex: 1,
         backgroundColor: '#FFFFFF',
-        borderRadius: 12,
+        borderRadius: 16,
         padding: 16,
         alignItems: 'center',
-        borderLeftWidth: 4,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 4,
+        shadowRadius: 8,
         elevation: 2,
+    },
+    estadoIcono: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
     },
     estadoValor: {
         fontSize: 24,
         fontWeight: '700',
         color: '#1A1A1A',
-        marginTop: 8,
         marginBottom: 4,
     },
     estadoLabel: {
         fontSize: 12,
         color: '#6B7280',
         fontWeight: '600',
+        textAlign: 'center',
     },
     metodosCard: {
         backgroundColor: '#FFFFFF',
@@ -676,16 +760,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
+        flex: 1,
     },
     metodoIcono: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    metodoTextos: {
+        flex: 1,
+    },
     metodoLabel: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '600',
         color: '#1A1A1A',
         marginBottom: 2,
@@ -698,7 +786,6 @@ const styles = StyleSheet.create({
     metodoPorcentaje: {
         paddingHorizontal: 12,
         paddingVertical: 6,
-        backgroundColor: '#F9FAFB',
         borderRadius: 8,
     },
     metodoPorcentajeTexto: {
@@ -708,7 +795,7 @@ const styles = StyleSheet.create({
     inventarioCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        padding: 16,
+        padding: 20,
         flexDirection: 'row',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -722,23 +809,23 @@ const styles = StyleSheet.create({
     },
     inventarioDivider: {
         width: 1,
-        backgroundColor: '#F3F4F6',
-        marginHorizontal: 8,
+        backgroundColor: '#E5E7EB',
+        marginHorizontal: 12,
     },
     inventarioIcono: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         backgroundColor: '#EFF6FF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     inventarioInfo: {
         alignItems: 'center',
     },
     inventarioValor: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: '700',
         color: '#1A1A1A',
         marginBottom: 4,
@@ -751,17 +838,25 @@ const styles = StyleSheet.create({
     },
     alertaStock: {
         backgroundColor: '#FFFBEB',
-        borderRadius: 12,
+        borderRadius: 16,
         padding: 16,
-        marginTop: 12,
+        marginTop: 16,
         borderWidth: 1,
         borderColor: '#FEF3C7',
     },
     alertaHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
         marginBottom: 12,
+        gap: 8,
+    },
+    alertaIcono: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#FEF3C7',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     alertaTitle: {
         fontSize: 14,
@@ -772,9 +867,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 8,
+        paddingVertical: 10,
         borderTopWidth: 1,
         borderTopColor: '#FEF3C7',
+    },
+    alertaProductoInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
     },
     alertaProducto: {
         fontSize: 13,
@@ -783,13 +884,15 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     alertaStockBadge: {
-        backgroundColor: '#FEF3C7',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
+        backgroundColor: '#FDE68A',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+        minWidth: 40,
+        alignItems: 'center',
     },
     alertaStockTexto: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#92400E',
         fontWeight: '700',
     },

@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { obtenerPedidos, obtenerProductos } from '../../servicios/api';
-import HeaderPanelAdmin from '../../componentes/HeaderPanelAdmin';
-import EstadisticasCompactas from '../../componentes/EstadisticasCompactas';
-import AccionesRapidas from '../../componentes/AccionesRapidas';
-import PedidosRecientes from '../../componentes/PedidosRecientes';
+import EncabezadoPanelAdmin from '../../componentes/01_basicos/EncabezadoPanelAdmin';
+import EstadisticasCompactas from '../../componentes/06_secciones/EstadisticasCompactas';
+import AccionesRapidas from '../../componentes/06_secciones/AccionesRapidas';
+import PedidosRecientes from '../../componentes/06_secciones/PedidosRecientes';
 
 const PanelAdmin = ({ navigation }) => {
     const [usuario, setUsuario] = useState(null);
@@ -36,7 +36,8 @@ const PanelAdmin = ({ navigation }) => {
             setPedidosRecientes(pedidos.slice(0, 5));
 
             const productosData = await obtenerProductos();
-            const productos = productosData.data || productosData || [];
+            const datos = productosData.data || productosData || {};
+            const productos = datos.activos || datos || [];
             console.log('Productos cargados en panel:', productos.length);
 
             const pendientes = pedidos.filter(p => p.estado?.toLowerCase() === 'pendiente').length;
@@ -82,7 +83,7 @@ const PanelAdmin = ({ navigation }) => {
     return (
         <View style={styles.container}>
             {/* Header con Avatar */}
-            <HeaderPanelAdmin navigation={navigation} usuario={usuario} />
+            <EncabezadoPanelAdmin navigation={navigation} usuario={usuario} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -92,9 +93,9 @@ const PanelAdmin = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Estadísticas */}
-                <EstadisticasCompactas 
-                    estadisticas={estadisticas} 
-                    onRefresh={cargarDatosAdmin} 
+                <EstadisticasCompactas
+                    estadisticas={estadisticas}
+                    onRefresh={cargarDatosAdmin}
                 />
 
                 {/* Acciones Rápidas */}

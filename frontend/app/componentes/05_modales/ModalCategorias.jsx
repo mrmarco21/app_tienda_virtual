@@ -9,7 +9,7 @@ import {
     TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CATEGORIAS_ELECTRONICAS } from './SeccionInformacion';
+import { CATEGORIAS_ELECTRONICAS } from '../06_secciones/SeccionInformacion';
 
 // Mapeo de categorías a iconos
 const ICONOS_CATEGORIAS = {

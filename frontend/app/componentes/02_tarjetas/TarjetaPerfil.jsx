@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-const PerfilCard = ({ usuario }) => {
+const TarjetaPerfil = ({ usuario }) => {
     return (
         <View style={styles.perfilCard}>
             <View style={styles.perfilIcono}>
@@ -59,4 +59,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default PerfilCard;
+export default TarjetaPerfil;

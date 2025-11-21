@@ -2,11 +2,19 @@ import pool from '../config/db.js';
 
 export const obtenerProductos = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM productos ORDER BY created_at DESC');
+    // Obtener productos activos e inactivos por separado
+    const [activos] = await pool.query('SELECT * FROM productos WHERE activo = TRUE ORDER BY created_at DESC');
+    const [inactivos] = await pool.query('SELECT * FROM productos WHERE activo = FALSE ORDER BY created_at DESC');
+    
     res.json({
       success: true,
-      data: rows,
-      total: rows.length
+      data: {
+        activos: activos,
+        inactivos: inactivos
+      },
+      total: activos.length + inactivos.length,
+      totalActivos: activos.length,
+      totalInactivos: inactivos.length
     });
   } catch (error) {
     console.error('Error al obtener productos:', error);
@@ -21,7 +29,7 @@ export const obtenerProductos = async (req, res) => {
 export const obtenerProductoPorId = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await pool.query('SELECT * FROM productos WHERE id = ?', [id]);
+    const [rows] = await pool.query('SELECT * FROM productos WHERE id = ? AND activo = TRUE', [id]);
     
     if (rows.length === 0) {
       return res.status(404).json({
@@ -96,8 +104,8 @@ export const actualizarProducto = async (req, res) => {
     const { id } = req.params;
     const { nombre, categoria, precio, stock, descripcion, imagen } = req.body;
     
-    // Verificar si el producto existe
-    const [productoExistente] = await pool.query('SELECT * FROM productos WHERE id = ?', [id]);
+    // Verificar si el producto existe y está activo
+    const [productoExistente] = await pool.query('SELECT * FROM productos WHERE id = ? AND activo = TRUE', [id]);
     if (productoExistente.length === 0) {
       return res.status(404).json({
         success: false,
@@ -146,8 +154,8 @@ export const eliminarProducto = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Verificar si el producto existe
-    const [productoExistente] = await pool.query('SELECT * FROM productos WHERE id = ?', [id]);
+    // Verificar si el producto existe y está activo
+    const [productoExistente] = await pool.query('SELECT * FROM productos WHERE id = ? AND activo = TRUE', [id]);
     if (productoExistente.length === 0) {
       return res.status(404).json({
         success: false,
@@ -155,8 +163,8 @@ export const eliminarProducto = async (req, res) => {
       });
     }
 
-    // Eliminar el producto
-    await pool.query('DELETE FROM productos WHERE id = ?', [id]);
+    // Soft delete: marcar como inactivo en lugar de eliminar
+    await pool.query('UPDATE productos SET activo = FALSE WHERE id = ?', [id]);
 
     res.json({
       success: true,
@@ -175,7 +183,7 @@ export const eliminarProducto = async (req, res) => {
 export const buscarProductos = async (req, res) => {
   try {
     const { q, categoria } = req.query;
-    let query = 'SELECT * FROM productos WHERE 1=1';
+    let query = 'SELECT * FROM productos WHERE activo = TRUE';
     const params = [];
 
     if (q) {
@@ -209,7 +217,7 @@ export const buscarProductos = async (req, res) => {
 
 export const obtenerCategorias = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT DISTINCT categoria FROM productos ORDER BY categoria');
+    const [rows] = await pool.query('SELECT DISTINCT categoria FROM productos WHERE activo = TRUE ORDER BY categoria');
     const categorias = rows.map(row => row.categoria);
     
     res.json({
@@ -221,6 +229,40 @@ export const obtenerCategorias = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al obtener categorías',
+      error: error.message
+    });
+  }
+};
+
+export const reactivarProducto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verificar si el producto existe y está inactivo
+    const [productoExistente] = await pool.query('SELECT * FROM productos WHERE id = ? AND activo = FALSE', [id]);
+    if (productoExistente.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado o ya está activo'
+      });
+    }
+
+    // Reactivar el producto
+    await pool.query('UPDATE productos SET activo = TRUE WHERE id = ?', [id]);
+
+    // Obtener el producto reactivado
+    const [productoReactivado] = await pool.query('SELECT * FROM productos WHERE id = ?', [id]);
+
+    res.json({
+      success: true,
+      message: 'Producto reactivado exitosamente',
+      data: productoReactivado[0]
+    });
+  } catch (error) {
+    console.error('Error al reactivar producto:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al reactivar producto',
       error: error.message
     });
   }

@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const PedidoCard = ({ pedido, getEstadoColor, getEstadoIcono, onVerDetalle }) => {
+const TarjetaPedido = ({ pedido, getEstadoColor, getEstadoIcono, onVerDetalle }) => {
     return (
         <View style={styles.pedidoCardModerno}>
             {/* Header del pedido */}
@@ -46,7 +46,7 @@ const PedidoCard = ({ pedido, getEstadoColor, getEstadoIcono, onVerDetalle }) =>
                         </Text>
                     </View>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.botonVerDetalle}
                     activeOpacity={0.7}
                     onPress={() => onVerDetalle(pedido)}
@@ -162,4 +162,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default PedidoCard;
+export default TarjetaPedido;

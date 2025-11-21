@@ -1,13 +1,13 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const PedidoCardAdmin = ({ 
-    pedido, 
-    esDestacado, 
-    esUltimo, 
-    getEstadoConfig, 
+const TarjetaPedidoAdmin = ({
+    pedido,
+    esDestacado,
+    esUltimo,
+    getEstadoConfig,
     abrirModalEstado,
-    pedidoRef 
+    pedidoRef
 }) => {
     const estadoConfig = getEstadoConfig(pedido.estado);
 
@@ -327,4 +327,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default PedidoCardAdmin;
+export default TarjetaPedidoAdmin;

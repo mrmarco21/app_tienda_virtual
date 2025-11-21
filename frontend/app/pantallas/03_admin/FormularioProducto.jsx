@@ -12,26 +12,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { crearProducto, actualizarProducto, obtenerCategorias } from '../../servicios/api';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
+import { crearProducto, actualizarProducto, obtenerCategorias, subirImagen } from '../../servicios/api';
 
 // Importar componentes
-import ToastNotification from '../../componentes/ToastNotification';
-import SeccionImagen from '../../componentes/SeccionImagen';
-import SeccionInformacion from '../../componentes/SeccionInformacion';
-import ModalCategorias from '../../componentes/ModalCategorias';
-import BotonesAccion from '../../componentes/BotonesAccion';
-
-// Obtener la URL base de la API
-const getApiBaseUrl = () => {
-    const port = 3000;
-    if (Platform.OS === 'android') return `http://10.0.2.2:${port}/api`;
-    return `http://localhost:${port}/api`;
-};
-
-const API_BASE_URL = Constants?.expoConfig?.extra?.apiUrl || getApiBaseUrl();
+import ToastNotification from '../../componentes/06_secciones/ToastNotification';
+import SeccionImagen from '../../componentes/06_secciones/SeccionImagen';
+import SeccionInformacion from '../../componentes/06_secciones/SeccionInformacion';
+import ModalCategorias from '../../componentes/05_modales/ModalCategorias';
+import ModalSeleccionImagen from '../../componentes/05_modales/ModalSeleccionImagen';
+import BotonesAccion from '../../componentes/06_secciones/BotonesAccion';
 
 const FormularioProducto = ({ navigation, route }) => {
     const producto = route.params?.producto;
@@ -51,6 +40,7 @@ const FormularioProducto = ({ navigation, route }) => {
     const [cargando, setCargando] = useState(false);
     const [subiendoImagen, setSubiendoImagen] = useState(false);
     const [mostrarModalCategorias, setMostrarModalCategorias] = useState(false);
+    const [mostrarModalImagen, setMostrarModalImagen] = useState(false);
     const [categoriasBD, setCategoriasBD] = useState([]);
 
     // Estado para Toast
@@ -186,50 +176,21 @@ const FormularioProducto = ({ navigation, route }) => {
     const subirImagenCloudinary = async (uri) => {
         setSubiendoImagen(true);
         try {
-            const formData = new FormData();
+            const response = await subirImagen(uri);
 
-            const filename = uri.split('/').pop();
-            const match = /\.(\w+)$/.exec(filename);
-            const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-            formData.append('imagen', {
-                uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-                name: filename,
-                type: type,
-            });
-
-            const token = await AsyncStorage.getItem('token');
-
-            const response = await axios.post(
-                `${API_BASE_URL}/upload-imagen`,
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        ...(token && { Authorization: `Bearer ${token}` }),
-                    },
-                    timeout: 30000,
-                }
-            );
-
-            const data = response.data;
-
-            if (data.success && (data.url || data.secure_url)) {
-                const imageUrl = data.url || data.secure_url;
+            if (response.success && (response.url || response.secure_url)) {
+                const imageUrl = response.url || response.secure_url;
                 setDatos({ ...datos, imagen: imageUrl });
                 showToast('Imagen subida correctamente', 'success');
             } else {
-                throw new Error(data.message || 'No se recibió la URL de la imagen');
+                throw new Error(response.message || 'No se recibió la URL de la imagen');
             }
         } catch (error) {
-            console.error('Error al subir imagen:', error);
+            console.error('❌ Error al subir imagen:', error);
 
             let errorMessage = 'No se pudo subir la imagen';
-
-            if (error.response) {
-                errorMessage = error.response.data?.message || errorMessage;
-            } else if (error.request) {
-                errorMessage = 'No se pudo conectar con el servidor';
+            if (error.message) {
+                errorMessage = error.message;
             }
 
             showToast(errorMessage, 'error');
@@ -241,43 +202,7 @@ const FormularioProducto = ({ navigation, route }) => {
 
     // Mostrar opciones de imagen
     const mostrarOpcionesImagen = () => {
-        Alert.alert('Seleccionar Imagen', 'Elige una opción', [
-            {
-                text: 'Tomar Foto',
-                onPress: tomarFoto,
-            },
-            {
-                text: 'Desde Galería',
-                onPress: seleccionarImagen,
-            },
-            {
-                text: 'Ingresar URL',
-                onPress: () => {
-                    Alert.prompt(
-                        'URL de Imagen',
-                        'Ingresa la URL de la imagen',
-                        [
-                            { text: 'Cancelar', style: 'cancel' },
-                            {
-                                text: 'Guardar',
-                                onPress: (url) => {
-                                    if (url) {
-                                        setDatos({ ...datos, imagen: url });
-                                        setImagenLocal(url);
-                                    }
-                                },
-                            },
-                        ],
-                        'plain-text',
-                        datos.imagen
-                    );
-                },
-            },
-            {
-                text: 'Cancelar',
-                style: 'cancel',
-            },
-        ]);
+        setMostrarModalImagen(true);
     };
 
     // Guardar producto
@@ -405,6 +330,14 @@ const FormularioProducto = ({ navigation, route }) => {
                 onSeleccionar={(categoria) => setDatos({ ...datos, categoria })}
                 onCerrar={() => setMostrarModalCategorias(false)}
                 onToast={showToast}
+            />
+
+            {/* Modal de Selección de Imagen */}
+            <ModalSeleccionImagen
+                visible={mostrarModalImagen}
+                onCerrar={() => setMostrarModalImagen(false)}
+                onTomarFoto={tomarFoto}
+                onSeleccionarGaleria={seleccionarImagen}
             />
         </KeyboardAvoidingView>
     );

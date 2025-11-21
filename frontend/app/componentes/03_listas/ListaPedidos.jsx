@@ -1,15 +1,15 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import PedidoCard from './PedidoCard';
+import TarjetaPedido from '../02_tarjetas/TarjetaPedido';
 
-const ListaPedidos = ({ 
-    pedidos, 
-    expandido, 
-    onToggleExpandir, 
-    getEstadoColor, 
-    getEstadoIcono, 
+const ListaPedidos = ({
+    pedidos,
+    expandido,
+    onToggleExpandir,
+    getEstadoColor,
+    getEstadoIcono,
     onVerDetalle,
-    navigation 
+    navigation
 }) => {
     if (pedidos.length === 0) {
         return (
@@ -48,10 +48,10 @@ const ListaPedidos = ({
                     onPress={onToggleExpandir}
                     activeOpacity={0.7}
                 >
-                    <Ionicons 
-                        name={expandido ? "chevron-up" : "chevron-down"} 
-                        size={24} 
-                        color="#3B82F6" 
+                    <Ionicons
+                        name={expandido ? "chevron-up" : "chevron-down"}
+                        size={24}
+                        color="#3B82F6"
                     />
                 </TouchableOpacity>
             </View>
@@ -59,7 +59,7 @@ const ListaPedidos = ({
             {expandido ? (
                 <View style={styles.pedidosContainer}>
                     {pedidos.map((pedido) => (
-                        <PedidoCard
+                        <TarjetaPedido
                             key={pedido.id}
                             pedido={pedido}
                             getEstadoColor={getEstadoColor}

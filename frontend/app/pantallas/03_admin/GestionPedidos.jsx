@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
 import { obtenerPedidos, actualizarEstadoPedido } from '../../servicios/api';
-import HeaderAdmin from '../../componentes/HeaderAdmin';
-import FiltrosPedidos from '../../componentes/FiltrosPedidos';
-import PedidoCardAdmin from '../../componentes/PedidoCardAdmin';
-import ModalCambiarEstado from '../../componentes/ModalCambiarEstado';
-import EmptyStatePedidos from '../../componentes/EmptyStatePedidos';
+import EncabezadoAdmin from '../../componentes/01_basicos/EncabezadoAdmin';
+import FiltrosPedidos from '../../componentes/06_secciones/FiltrosPedidos';
+import TarjetaPedidoAdmin from '../../componentes/02_tarjetas/TarjetaPedidoAdmin';
+import ModalCambiarEstado from '../../componentes/05_modales/ModalCambiarEstado';
+import EstadoVacioPedidos from '../../componentes/03_listas/EstadoVacioPedidos';
 
 const GestionPedidos = ({ navigation, route = {} }) => {
     const [pedidos, setPedidos] = useState([]);
     const [filtro, setFiltro] = useState('todos');
     const [cargando, setCargando] = useState(false);
-    
+
     // Estados para el modal de cambio de estado
     const [modalEstadoVisible, setModalEstadoVisible] = useState(false);
     const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
@@ -28,16 +28,16 @@ const GestionPedidos = ({ navigation, route = {} }) => {
     // Efecto para scroll automático
     useEffect(() => {
         console.log('🔍 Route.params:', route?.params);
-        
+
         const pedidoId = route?.params?.pedidoId;
-        
+
         if (pedidoId && pedidos.length > 0) {
             console.log('🎯 Pedido ID recibido:', pedidoId);
             setPedidoDestacado(pedidoId);
-            
+
             setTimeout(() => {
                 const pedidoIndex = pedidosFiltrados.findIndex(p => p.id === pedidoId);
-                
+
                 if (pedidoIndex !== -1 && pedidoRefs.current[pedidoId]) {
                     pedidoRefs.current[pedidoId].measureLayout(
                         scrollViewRef.current,
@@ -50,7 +50,7 @@ const GestionPedidos = ({ navigation, route = {} }) => {
                         (error) => console.log('⚠️ Error scroll:', error)
                     );
                 }
-                
+
                 setTimeout(() => {
                     setPedidoDestacado(null);
                     if (navigation?.setParams) {
@@ -67,11 +67,11 @@ const GestionPedidos = ({ navigation, route = {} }) => {
             const response = await obtenerPedidos();
             const pedidosData = response.pedidos || response.data || response || [];
             console.log('Pedidos cargados:', pedidosData.length);
-            
+
             if (pedidosData.length > 0) {
                 console.log('📧 Campos disponibles:', Object.keys(pedidosData[0]));
             }
-            
+
             setPedidos(Array.isArray(pedidosData) ? pedidosData : []);
         } catch (error) {
             console.error('Error al cargar pedidos:', error);
@@ -147,7 +147,7 @@ const GestionPedidos = ({ navigation, route = {} }) => {
     return (
         <View style={styles.container}>
             {/* Header Genérico */}
-            <HeaderAdmin
+            <EncabezadoAdmin
                 navigation={navigation}
                 titulo="Gestión de Pedidos"
                 subtitulo={`${pedidosFiltrados.length} ${pedidosFiltrados.length === 1 ? 'pedido' : 'pedidos'}`}
@@ -174,10 +174,10 @@ const GestionPedidos = ({ navigation, route = {} }) => {
                 showsVerticalScrollIndicator={false}
             >
                 {pedidosFiltrados.length === 0 ? (
-                    <EmptyStatePedidos filtro={filtro} />
+                    <EstadoVacioPedidos filtro={filtro} />
                 ) : (
                     pedidosFiltrados.map((pedido, index) => (
-                        <PedidoCardAdmin
+                        <TarjetaPedidoAdmin
                             key={pedido.id}
                             pedido={pedido}
                             esDestacado={pedidoDestacado === pedido.id}

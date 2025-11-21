@@ -9,12 +9,14 @@ import {
     TouchableOpacity,
     Alert,
     ScrollView,
-    Dimensions
+    Dimensions,
+    Image
 } from 'react-native';
-import { obtenerProductos, obtenerCategorias, buscarProductos } from '../servicios/api';
-import TarjetaProducto from '../componentes/TarjetaProducto';
+import { obtenerProductos, obtenerCategorias, buscarProductos } from '../../servicios/api';
+import TarjetaProducto from '../../componentes/02_tarjetas/TarjetaProducto';
 import { Ionicons } from '@expo/vector-icons';
-import { useCarrito } from '../contexto/CarritoContext'; // IMPORTAR useCarrito
+import { useCarrito } from '../../contexto/CarritoContext';
+import ModalFiltros from '../../componentes/05_modales/ModalFiltros';
 
 const { width } = Dimensions.get('window');
 
@@ -41,11 +43,14 @@ const ICONOS_CATEGORIAS = {
 
 const Inicio = ({ navigation }) => {
     const [productos, setProductos] = useState([]);
+    const [productosOriginales, setProductosOriginales] = useState([]);
     const [categorias, setCategorias] = useState([]);
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
+    const [ordenPrecio, setOrdenPrecio] = useState('');
     const [busqueda, setBusqueda] = useState('');
     const [cargando, setCargando] = useState(true);
     const [refrescando, setRefrescando] = useState(false);
+    const [mostrarModalFiltros, setMostrarModalFiltros] = useState(false);
 
     // OBTENER CANTIDAD DE PRODUCTOS EN EL CARRITO
     const { carrito } = useCarrito();
@@ -59,15 +64,33 @@ const Inicio = ({ navigation }) => {
     const normalizarRespuesta = (response) => {
         // Intentar diferentes estructuras de respuesta
         if (response?.data?.data) {
+            // Nueva estructura con activos/inactivos
+            if (response.data.data.activos) {
+                return Array.isArray(response.data.data.activos) ? response.data.data.activos : [];
+            }
             return Array.isArray(response.data.data) ? response.data.data : [];
         }
         if (response?.data) {
+            // Nueva estructura con activos/inactivos
+            if (response.data.activos) {
+                return Array.isArray(response.data.activos) ? response.data.activos : [];
+            }
             return Array.isArray(response.data) ? response.data : [];
         }
         if (Array.isArray(response)) {
             return response;
         }
         return [];
+    };
+
+    // Función para mezclar array aleatoriamente (Fisher-Yates shuffle)
+    const mezclarArray = (array) => {
+        const nuevoArray = [...array];
+        for (let i = nuevoArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [nuevoArray[i], nuevoArray[j]] = [nuevoArray[j], nuevoArray[i]];
+        }
+        return nuevoArray;
     };
 
     const cargarDatos = async () => {
@@ -78,7 +101,11 @@ const Inicio = ({ navigation }) => {
             const resProductos = await obtenerProductos();
             const productosNormalizados = normalizarRespuesta(resProductos);
             console.log('📦 Productos cargados:', productosNormalizados.length);
-            setProductos(productosNormalizados);
+
+            // Mezclar productos aleatoriamente
+            const productosMezclados = mezclarArray(productosNormalizados);
+            setProductos(productosMezclados);
+            setProductosOriginales(productosMezclados);
 
             // Cargar categorías desde la API (solo las que existen en productos)
             const resCategorias = await obtenerCategorias();
@@ -106,6 +133,7 @@ const Inicio = ({ navigation }) => {
                 ]
             );
             setProductos([]);
+            setProductosOriginales([]);
             setCategorias([]);
         } finally {
             setCargando(false);
@@ -158,7 +186,29 @@ const Inicio = ({ navigation }) => {
     const limpiarFiltros = () => {
         setBusqueda('');
         setCategoriaSeleccionada('');
+        setOrdenPrecio('');
         cargarDatos();
+    };
+
+    const aplicarFiltros = () => {
+        let productosFiltrados = [...productosOriginales];
+
+        // Filtrar por categoría
+        if (categoriaSeleccionada) {
+            productosFiltrados = productosFiltrados.filter(
+                p => p.categoria === categoriaSeleccionada
+            );
+        }
+
+        // Ordenar por precio
+        if (ordenPrecio === 'menor') {
+            productosFiltrados.sort((a, b) => a.precio - b.precio);
+        } else if (ordenPrecio === 'mayor') {
+            productosFiltrados.sort((a, b) => b.precio - a.precio);
+        }
+
+        setProductos(productosFiltrados);
+        setMostrarModalFiltros(false);
     };
 
     const refrescar = () => {
@@ -185,9 +235,16 @@ const Inicio = ({ navigation }) => {
             {/* Header con búsqueda */}
             <View style={styles.header}>
                 <View style={styles.headerTop}>
-                    <View>
-                        <Text style={styles.titulo}>ElectroStore App</Text>
-                        <Text style={styles.subtitulo}>Encuentra los mejores productos</Text>
+                    <View style={styles.headerLeft}>
+                        {/* <Image
+                            source={require('../../../assets/dsi_maketLogo.png')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        /> */}
+                        <View>
+                            <Text style={styles.titulo}>DSI Market</Text>
+                            <Text style={styles.subtitulo}>Encuentra los mejores productos</Text>
+                        </View>
                     </View>
 
                     {/* BOTÓN DE CARRITO CON CONTADOR */}
@@ -209,94 +266,60 @@ const Inicio = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.busquedaContainer}>
-                    <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.iconoBusqueda} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Buscar productos..."
-                        placeholderTextColor="#9CA3AF"
-                        value={busqueda}
-                        onChangeText={setBusqueda}
-                        onSubmitEditing={buscar}
-                        returnKeyType="search"
-                    />
-                    {busqueda.length > 0 && (
-                        <TouchableOpacity
-                            onPress={() => {
-                                setBusqueda('');
-                                if (!categoriaSeleccionada) cargarDatos();
-                            }}
-                            style={styles.clearButton}
-                        >
-                            <Ionicons name="close-circle" size={20} color="#9CA3AF" />
-                        </TouchableOpacity>
-                    )}
+                <View style={styles.busquedaRow}>
+                    <View style={styles.busquedaContainer}>
+                        <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.iconoBusqueda} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Buscar productos..."
+                            placeholderTextColor="#9CA3AF"
+                            value={busqueda}
+                            onChangeText={setBusqueda}
+                            onSubmitEditing={buscar}
+                            returnKeyType="search"
+                        />
+                        {busqueda.length > 0 && (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setBusqueda('');
+                                    if (!categoriaSeleccionada && !ordenPrecio) cargarDatos();
+                                }}
+                                style={styles.clearButton}
+                            >
+                                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {/* Botón de Filtros */}
+                    <TouchableOpacity
+                        style={[
+                            styles.filterButton,
+                            (categoriaSeleccionada || ordenPrecio) && styles.filterButtonActive
+                        ]}
+                        onPress={() => setMostrarModalFiltros(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name="options-outline"
+                            size={24}
+                            color={(categoriaSeleccionada || ordenPrecio) ? '#FFFFFF' : '#1A1A1A'}
+                        />
+                        {(categoriaSeleccionada || ordenPrecio) && (
+                            <View style={styles.filterBadge} />
+                        )}
+                    </TouchableOpacity>
                 </View>
             </View>
-
-            {/* Filtros de categorías */}
-            {categorias.length > 0 && (
-                <View style={styles.categoriasWrapper}>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.categoriasContainer}
-                    >
-                        <TouchableOpacity
-                            style={[
-                                styles.categoriaChip,
-                                !categoriaSeleccionada && styles.categoriaActiva
-                            ]}
-                            onPress={limpiarFiltros}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons
-                                name="apps"
-                                size={18}
-                                color={!categoriaSeleccionada ? '#FFFFFF' : '#6B7280'}
-                            />
-                            <Text style={[
-                                styles.categoriaTexto,
-                                !categoriaSeleccionada && styles.categoriaTextoActiva
-                            ]}>
-                                Todas
-                            </Text>
-                        </TouchableOpacity>
-
-                        {categorias.map((cat, index) => (
-                            <TouchableOpacity
-                                key={cat.categoria || index}
-                                style={[
-                                    styles.categoriaChip,
-                                    categoriaSeleccionada === cat.categoria && styles.categoriaActiva
-                                ]}
-                                onPress={() => filtrarPorCategoria(cat.categoria)}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons
-                                    name={obtenerIconoCategoria(cat.categoria)}
-                                    size={18}
-                                    color={categoriaSeleccionada === cat.categoria ? '#FFFFFF' : '#6B7280'}
-                                />
-                                <Text style={[
-                                    styles.categoriaTexto,
-                                    categoriaSeleccionada === cat.categoria && styles.categoriaTextoActiva
-                                ]}>
-                                    {cat.categoria}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
 
             {/* Contador de productos */}
             <View style={styles.contadorContainer}>
                 <Text style={styles.contadorTexto}>
                     {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
                     {categoriaSeleccionada && ` en ${categoriaSeleccionada}`}
+                    {ordenPrecio && ` • ${ordenPrecio === 'menor' ? 'Menor precio' : 'Mayor precio'}`}
                 </Text>
-                {(busqueda || categoriaSeleccionada) && (
+                {(busqueda || categoriaSeleccionada || ordenPrecio) && (
                     <TouchableOpacity onPress={limpiarFiltros} activeOpacity={0.7}>
                         <View style={styles.limpiarButton}>
                             <Ionicons name="refresh" size={14} color="#3B82F6" />
@@ -327,11 +350,11 @@ const Inicio = ({ navigation }) => {
                         </View>
                         <Text style={styles.textoVacio}>No se encontraron productos</Text>
                         <Text style={styles.textoVacioSubtitulo}>
-                            {(busqueda || categoriaSeleccionada)
+                            {(busqueda || categoriaSeleccionada || ordenPrecio)
                                 ? 'Intenta con otros términos de búsqueda'
                                 : 'No hay productos disponibles en este momento'}
                         </Text>
-                        {(busqueda || categoriaSeleccionada) && (
+                        {(busqueda || categoriaSeleccionada || ordenPrecio) && (
                             <TouchableOpacity
                                 style={styles.botonVerTodos}
                                 onPress={limpiarFiltros}
@@ -349,6 +372,23 @@ const Inicio = ({ navigation }) => {
                     ) : <View style={{ height: 20 }} />
                 }
             />
+
+            {/* Modal de Filtros */}
+            <ModalFiltros
+                visible={mostrarModalFiltros}
+                onCerrar={() => setMostrarModalFiltros(false)}
+                categorias={categorias}
+                categoriaSeleccionada={categoriaSeleccionada}
+                ordenPrecio={ordenPrecio}
+                onSeleccionarCategoria={setCategoriaSeleccionada}
+                onSeleccionarOrden={setOrdenPrecio}
+                onAplicarFiltros={aplicarFiltros}
+                onLimpiarFiltros={() => {
+                    setCategoriaSeleccionada('');
+                    setOrdenPrecio('');
+                }}
+                obtenerIconoCategoria={obtenerIconoCategoria}
+            />
         </View>
     );
 };
@@ -362,7 +402,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         paddingTop: 40,
         paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingBottom: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -374,6 +414,15 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 10,
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    logo: {
+        width: 0,
+        height: 0,
     },
     titulo: {
         fontSize: 24,
@@ -414,7 +463,13 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
     },
+    busquedaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     busquedaContainer: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F3F4F6',
@@ -428,48 +483,40 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 15,
         color: '#1A1A1A',
-        paddingVertical: 10,
+        paddingVertical: 14,
     },
     clearButton: {
         padding: 4,
     },
-    categoriasWrapper: {
-        backgroundColor: '#FFFFFF',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
-    },
-    categoriasContainer: {
-        paddingHorizontal: 16,
-        gap: 4,
-    },
-    categoriaChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        borderRadius: 20,
+    filterButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
         backgroundColor: '#F3F4F6',
-        marginRight: 8,
-        gap: 6,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
     },
-    categoriaActiva: {
+    filterButtonActive: {
         backgroundColor: '#3B82F6',
     },
-    categoriaTexto: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#6B7280',
-    },
-    categoriaTextoActiva: {
-        color: '#FFFFFF',
+    filterBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#10B981',
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
     },
     contadorContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 7,
+        paddingVertical: 5,
         backgroundColor: '#FFFFFF',
     },
     contadorTexto: {

@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     },
     statCardCompact: {
         width: (width - 44) / 2,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#eeeeeeda',
         borderRadius: 12,
         padding: 14,
         shadowColor: '#000',

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const ModalAdminLogin = ({ visible, onClose, onLogin, cargando }) => {
+const ModalLoginAdmin = ({ visible, onClose, onLogin, cargando }) => {
     const [adminForm, setAdminForm] = useState({ email: '', password: '' });
 
     const handleSubmit = () => {
@@ -221,4 +221,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ModalAdminLogin;
+export default ModalLoginAdmin;

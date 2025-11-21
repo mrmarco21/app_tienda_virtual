@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react';
-import { 
-    View, 
-    Text, 
-    TouchableOpacity, 
-    StyleSheet, 
-    TextInput, 
+import { useState } from 'react';
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    TextInput,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
@@ -12,23 +12,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const RegisterForm = ({ onRegister, onSwitchToLogin, cargando }) => {
-    const [registroForm, setRegistroForm] = useState({
-        nombre: '',
-        email: '',
-        password: '',
-        confirmarPassword: ''
-    });
+const FormularioLogin = ({ onLogin, onSwitchToRegister, cargando }) => {
+    const [loginForm, setLoginForm] = useState({ email: '', password: '' });
     const [mostrarPassword, setMostrarPassword] = useState(false);
-    const [mostrarConfirmarPassword, setMostrarConfirmarPassword] = useState(false);
-
-    // Refs para navegar entre inputs
-    const emailRef = useRef(null);
-    const passwordRef = useRef(null);
-    const confirmarPasswordRef = useRef(null);
 
     const handleSubmit = () => {
-        onRegister(registroForm);
+        onLogin(loginForm);
     };
 
     return (
@@ -44,43 +33,25 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, cargando }) => {
             >
                 <View style={styles.formContainer}>
                     <View style={styles.formIconContainer}>
-                        <Ionicons name="person-add-outline" size={48} color="#3B82F6" />
+                        <Ionicons name="log-in-outline" size={48} color="#3B82F6" />
                     </View>
-                    <Text style={styles.formTitulo}>¡Únete ahora!</Text>
-                    <Text style={styles.formSubtitulo}>Crea tu cuenta en segundos</Text>
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Nombre completo</Text>
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="person-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Juan Pérez"
-                                placeholderTextColor="#9CA3AF"
-                                value={registroForm.nombre}
-                                onChangeText={(text) => setRegistroForm({ ...registroForm, nombre: text })}
-                                returnKeyType="next"
-                                onSubmitEditing={() => emailRef.current?.focus()}
-                            />
-                        </View>
-                    </View>
+                    <Text style={styles.formTitulo}>¡Bienvenido de nuevo!</Text>
+                    <Text style={styles.formSubtitulo}>Ingresa tus datos para continuar</Text>
 
                     <View style={styles.inputContainer}>
                         <Text style={styles.inputLabel}>Email</Text>
                         <View style={styles.inputWrapper}>
                             <Ionicons name="mail-outline" size={20} color="#6B7280" style={styles.inputIcon} />
                             <TextInput
-                                ref={emailRef}
                                 style={styles.input}
                                 placeholder="tu@email.com"
                                 placeholderTextColor="#9CA3AF"
-                                value={registroForm.email}
-                                onChangeText={(text) => setRegistroForm({ ...registroForm, email: text })}
+                                value={loginForm.email}
+                                onChangeText={(text) => setLoginForm({ ...loginForm, email: text })}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 returnKeyType="next"
-                                onSubmitEditing={() => passwordRef.current?.focus()}
                             />
                         </View>
                     </View>
@@ -90,15 +61,14 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, cargando }) => {
                         <View style={styles.inputWrapper}>
                             <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
                             <TextInput
-                                ref={passwordRef}
                                 style={styles.input}
-                                placeholder="Mínimo 6 caracteres"
+                                placeholder="••••••••"
                                 placeholderTextColor="#9CA3AF"
-                                value={registroForm.password}
-                                onChangeText={(text) => setRegistroForm({ ...registroForm, password: text })}
+                                value={loginForm.password}
+                                onChangeText={(text) => setLoginForm({ ...loginForm, password: text })}
                                 secureTextEntry={!mostrarPassword}
-                                returnKeyType="next"
-                                onSubmitEditing={() => confirmarPasswordRef.current?.focus()}
+                                returnKeyType="done"
+                                onSubmitEditing={handleSubmit}
                             />
                             <TouchableOpacity
                                 onPress={() => setMostrarPassword(!mostrarPassword)}
@@ -114,42 +84,6 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, cargando }) => {
                         </View>
                     </View>
 
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Confirmar contraseña</Text>
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                ref={confirmarPasswordRef}
-                                style={styles.input}
-                                placeholder="Repite tu contraseña"
-                                placeholderTextColor="#9CA3AF"
-                                value={registroForm.confirmarPassword}
-                                onChangeText={(text) => setRegistroForm({ ...registroForm, confirmarPassword: text })}
-                                secureTextEntry={!mostrarConfirmarPassword}
-                                returnKeyType="done"
-                                onSubmitEditing={handleSubmit}
-                            />
-                            <TouchableOpacity
-                                onPress={() => setMostrarConfirmarPassword(!mostrarConfirmarPassword)}
-                                style={styles.eyeButton}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons
-                                    name={mostrarConfirmarPassword ? "eye-outline" : "eye-off-outline"}
-                                    size={20}
-                                    color="#6B7280"
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    <View style={styles.termsContainer}>
-                        <Ionicons name="information-circle-outline" size={16} color="#6B7280" />
-                        <Text style={styles.termsText}>
-                            Al registrarte, aceptas nuestros términos y condiciones
-                        </Text>
-                    </View>
-
                     <TouchableOpacity
                         style={[styles.botonPrimario, cargando && styles.botonDeshabilitado]}
                         onPress={handleSubmit}
@@ -160,8 +94,8 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, cargando }) => {
                             <ActivityIndicator color="#FFF" />
                         ) : (
                             <>
-                                <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" style={styles.botonIcon} />
-                                <Text style={styles.textoBotonPrimario}>Crear cuenta</Text>
+                                <Ionicons name="log-in-outline" size={20} color="#FFF" style={styles.botonIcon} />
+                                <Text style={styles.textoBotonPrimario}>Iniciar sesión</Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -174,11 +108,11 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, cargando }) => {
 
                     <TouchableOpacity
                         style={styles.linkContainer}
-                        onPress={onSwitchToLogin}
+                        onPress={onSwitchToRegister}
                         activeOpacity={0.7}
                     >
                         <Text style={styles.linkTexto}>
-                            ¿Ya tienes cuenta? <Text style={styles.linkDestacado}>Inicia sesión</Text>
+                            ¿No tienes cuenta? <Text style={styles.linkDestacado}>Regístrate aquí</Text>
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -259,21 +193,6 @@ const styles = StyleSheet.create({
     eyeButton: {
         padding: 4,
     },
-    termsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F9FAFB',
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 20,
-        gap: 8,
-    },
-    termsText: {
-        flex: 1,
-        fontSize: 12,
-        color: '#6B7280',
-        lineHeight: 16,
-    },
     botonPrimario: {
         flexDirection: 'row',
         backgroundColor: '#3B82F6',
@@ -281,6 +200,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
+        marginTop: 8,
         shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
@@ -326,4 +246,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default RegisterForm;
+export default FormularioLogin;

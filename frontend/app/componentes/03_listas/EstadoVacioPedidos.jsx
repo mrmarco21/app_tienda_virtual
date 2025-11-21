@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const EmptyStatePedidos = ({ filtro }) => {
+const EstadoVacioPedidos = ({ filtro }) => {
     return (
         <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
@@ -52,4 +52,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default EmptyStatePedidos;
+export default EstadoVacioPedidos;

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -13,18 +13,17 @@ import {
     StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useCarrito } from '../contexto/CarritoContext';
+import { useCarrito } from '../../contexto/CarritoContext';
 
 const { width } = Dimensions.get('window');
 
 const DetalleProducto = ({ route, navigation }) => {
     const { producto } = route.params;
-    const { agregarAlCarrito, carrito } = useCarrito(); // AGREGAR carrito
-
+    const { agregarAlCarrito, carrito } = useCarrito();
+    
     const stockBajo = producto.stock > 0 && producto.stock < 10;
     const sinStock = producto.stock <= 0;
 
-    // VALIDAR CANTIDAD EN CARRITO
     const productoEnCarrito = carrito.find(item => item.id === producto.id);
     const cantidadEnCarrito = productoEnCarrito ? productoEnCarrito.cantidad : 0;
     const stockDisponible = producto.stock - cantidadEnCarrito;
@@ -37,12 +36,10 @@ const DetalleProducto = ({ route, navigation }) => {
                 return true;
             }
         );
-
         return () => backHandler.remove();
     }, [navigation]);
 
     const handleAgregarCarrito = () => {
-        // Validar si no hay stock
         if (sinStock) {
             Alert.alert(
                 'Sin stock',
@@ -52,7 +49,6 @@ const DetalleProducto = ({ route, navigation }) => {
             return;
         }
 
-        // VALIDAR SI YA ALCANZÓ EL LÍMITE DE STOCK
         if (cantidadEnCarrito >= producto.stock) {
             Alert.alert(
                 'Límite alcanzado',
@@ -69,7 +65,6 @@ const DetalleProducto = ({ route, navigation }) => {
             return;
         }
 
-        // MOSTRAR ALERTA SI ESTÁ CERCA DEL LÍMITE
         if (cantidadEnCarrito > 0 && stockDisponible <= 2) {
             Alert.alert(
                 'Agregar al carrito',
@@ -99,11 +94,9 @@ const DetalleProducto = ({ route, navigation }) => {
             return;
         }
 
-        // Agregar normalmente
         agregarAlCarrito(producto);
-        
         const nuevaCantidad = cantidadEnCarrito + 1;
-        const mensajeAdicional = cantidadEnCarrito > 0 
+        const mensajeAdicional = cantidadEnCarrito > 0
             ? `\n\nAhora tienes ${nuevaCantidad} ${nuevaCantidad === 1 ? 'unidad' : 'unidades'} en tu carrito.`
             : '';
 
@@ -127,15 +120,17 @@ const DetalleProducto = ({ route, navigation }) => {
                 showsVerticalScrollIndicator={false}
                 bounces={true}
             >
-                {/* Hero Image Section */}
+                {/* Hero Image Section - Optimizado */}
                 <View style={styles.imagenContainer}>
-                    <Image
-                        source={{
-                            uri: producto.imagen || 'https://via.placeholder.com/400x400/f0f0f0/999999?text=Sin+Imagen'
-                        }}
-                        style={[styles.imagen, sinStock && styles.imagenDeshabilitada]}
-                        resizeMode="cover"
-                    />
+                    <View style={styles.imagenWrapper}>
+                        <Image
+                            source={{
+                                uri: producto.imagen || 'https://via.placeholder.com/400x400/f0f0f0/999999?text=Sin+Imagen'
+                            }}
+                            style={styles.imagen}
+                            resizeMode="contain"
+                        />
+                    </View>
 
                     {/* Header flotante con gradiente */}
                     <View style={styles.headerGradiente} />
@@ -225,7 +220,7 @@ const DetalleProducto = ({ route, navigation }) => {
                                 <Text style={styles.alertaCarritoTexto}>
                                     Ya tienes {cantidadEnCarrito} {cantidadEnCarrito === 1 ? 'unidad' : 'unidades'} en tu carrito
                                 </Text>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => navigation.navigate('Carrito')}
                                     style={styles.verCarritoLink}
                                 >
@@ -333,11 +328,11 @@ const DetalleProducto = ({ route, navigation }) => {
                                 color="#FFF"
                             />
                             <Text style={styles.textoBoton}>
-                                {sinStock 
-                                    ? 'No disponible' 
+                                {sinStock
+                                    ? 'No disponible'
                                     : cantidadEnCarrito >= producto.stock
-                                    ? 'Stock máximo alcanzado'
-                                    : 'Agregar al carrito'}
+                                        ? 'Stock máximo alcanzado'
+                                        : 'Agregar al carrito'}
                             </Text>
                         </View>
                         {!(sinStock || cantidadEnCarrito >= producto.stock) && (
@@ -360,16 +355,28 @@ const styles = StyleSheet.create({
     },
     imagenContainer: {
         width: '100%',
-        height: width * 1.2,
+        height: width * 0.8,
         backgroundColor: '#FFFFFF',
         position: 'relative',
     },
-    imagen: {
+    imagenWrapper: {
         width: '100%',
         height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
     },
-    imagenDeshabilitada: {
-        opacity: 0.5,
+    imagen: {
+        width: '90%',
+        height: '90%',
+        resizeMode: 'contain',
+        borderRadius: 12,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     headerGradiente: {
         position: 'absolute',
@@ -518,7 +525,6 @@ const styles = StyleSheet.create({
     stockTextoBajo: {
         color: '#F59E0B',
     },
-    // NUEVA ALERTA DE PRODUCTO EN CARRITO
     alertaCarrito: {
         flexDirection: 'row',
         alignItems: 'center',

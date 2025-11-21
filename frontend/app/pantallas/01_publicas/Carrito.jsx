@@ -1,18 +1,18 @@
 import React, { useEffect } from 'react';
-import { 
-    View, 
-    Text, 
-    FlatList, 
-    Image, 
-    TouchableOpacity, 
-    StyleSheet, 
+import {
+    View,
+    Text,
+    FlatList,
+    Image,
+    TouchableOpacity,
+    StyleSheet,
     Alert,
     BackHandler,
     Platform,
     StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useCarrito } from '../contexto/CarritoContext';
+import { useCarrito } from '../../contexto/CarritoContext';
 
 const Carrito = ({ navigation }) => {
     const { carrito, eliminarDelCarrito, actualizarCantidad, vaciarCarrito, obtenerTotal } = useCarrito();
@@ -35,10 +35,10 @@ const Carrito = ({ navigation }) => {
             `¿Deseas eliminar "${producto.nombre}" del carrito?`,
             [
                 { text: 'Cancelar', style: 'cancel' },
-                { 
-                    text: 'Eliminar', 
-                    onPress: () => eliminarDelCarrito(producto.id), 
-                    style: 'destructive' 
+                {
+                    text: 'Eliminar',
+                    onPress: () => eliminarDelCarrito(producto.id),
+                    style: 'destructive'
                 }
             ]
         );
@@ -50,10 +50,10 @@ const Carrito = ({ navigation }) => {
             '¿Estás seguro de eliminar todos los productos del carrito?',
             [
                 { text: 'Cancelar', style: 'cancel' },
-                { 
-                    text: 'Vaciar todo', 
-                    onPress: vaciarCarrito, 
-                    style: 'destructive' 
+                {
+                    text: 'Vaciar todo',
+                    onPress: vaciarCarrito,
+                    style: 'destructive'
                 }
             ]
         );
@@ -67,7 +67,7 @@ const Carrito = ({ navigation }) => {
                     styles.header,
                     { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
                 ]}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.backButton}
                         onPress={() => navigation.navigate('Inicio')}
                         activeOpacity={0.7}
@@ -105,12 +105,12 @@ const Carrito = ({ navigation }) => {
     const renderItem = ({ item }) => (
         <View style={styles.item}>
             <Image
-                source={{ 
-                    uri: item.imagen || 'https://via.placeholder.com/100/f0f0f0/999999?text=Sin+Imagen' 
+                source={{
+                    uri: item.imagen || 'https://via.placeholder.com/100/f0f0f0/999999?text=Sin+Imagen'
                 }}
                 style={styles.imagen}
             />
-            
+
             <View style={styles.info}>
                 <Text style={styles.nombre} numberOfLines={2}>{item.nombre}</Text>
                 <Text style={styles.precioUnitario}>S/ {parseFloat(item.precio).toFixed(2)} c/u</Text>
@@ -131,10 +131,10 @@ const Carrito = ({ navigation }) => {
                         disabled={item.cantidad <= 1}
                         activeOpacity={0.7}
                     >
-                        <Ionicons 
-                            name="remove" 
-                            size={18} 
-                            color={item.cantidad <= 1 ? "#9CA3AF" : "#FFF"} 
+                        <Ionicons
+                            name="remove"
+                            size={18}
+                            color={item.cantidad <= 1 ? "#9CA3AF" : "#FFF"}
                         />
                     </TouchableOpacity>
 
@@ -148,10 +148,10 @@ const Carrito = ({ navigation }) => {
                         disabled={item.cantidad >= item.stock}
                         activeOpacity={0.7}
                     >
-                        <Ionicons 
-                            name="add" 
-                            size={18} 
-                            color={item.cantidad >= item.stock ? "#9CA3AF" : "#FFF"} 
+                        <Ionicons
+                            name="add"
+                            size={18}
+                            color={item.cantidad >= item.stock ? "#9CA3AF" : "#FFF"}
                         />
                     </TouchableOpacity>
                 </View>
@@ -161,7 +161,7 @@ const Carrito = ({ navigation }) => {
                 <Text style={styles.subtotal}>
                     S/ {(parseFloat(item.precio) * item.cantidad).toFixed(2)}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.botonEliminar}
                     onPress={() => handleEliminar(item)}
                     activeOpacity={0.7}
@@ -179,7 +179,7 @@ const Carrito = ({ navigation }) => {
                 styles.header,
                 { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 48 }
             ]}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => navigation.navigate('Inicio')}
                     activeOpacity={0.7}
@@ -204,7 +204,7 @@ const Carrito = ({ navigation }) => {
                         <Text style={styles.listaHeaderTexto}>
                             {carrito.length} {carrito.length === 1 ? 'producto' : 'productos'}
                         </Text>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             onPress={handleVaciar}
                             activeOpacity={0.7}
                         >
@@ -229,9 +229,9 @@ const Carrito = ({ navigation }) => {
                         </View>
                         <Text style={styles.resumenEnvio}>GRATIS</Text>
                     </View>
-                    
+
                     <View style={styles.dividerFooter} />
-                    
+
                     <View style={styles.resumenRow}>
                         <Text style={styles.totalLabel}>Total</Text>
                         <View style={styles.totalContainer}>
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         backgroundColor: '#FFFFFF',
         paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingBottom: 18,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
         shadowColor: '#000',
