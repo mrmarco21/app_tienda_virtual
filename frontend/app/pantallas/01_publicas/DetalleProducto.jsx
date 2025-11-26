@@ -14,15 +14,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCarrito } from '../../contexto/CarritoContext';
+import { useFavoritos } from '../../contexto/FavoritosContext';
 
 const { width } = Dimensions.get('window');
 
 const DetalleProducto = ({ route, navigation }) => {
     const { producto } = route.params;
     const { agregarAlCarrito, carrito } = useCarrito();
-    
+    const { agregarAFavoritos, eliminarDeFavoritos, esFavorito } = useFavoritos();
+
     const stockBajo = producto.stock > 0 && producto.stock < 10;
     const sinStock = producto.stock <= 0;
+    const estaEnFavoritos = esFavorito(producto.id);
 
     const productoEnCarrito = carrito.find(item => item.id === producto.id);
     const cantidadEnCarrito = productoEnCarrito ? productoEnCarrito.cantidad : 0;
@@ -38,6 +41,33 @@ const DetalleProducto = ({ route, navigation }) => {
         );
         return () => backHandler.remove();
     }, [navigation]);
+
+    const handleToggleFavorito = () => {
+        if (estaEnFavoritos) {
+            eliminarDeFavoritos(producto.id);
+            Alert.alert(
+                'Eliminado de favoritos',
+                `${producto.nombre} se eliminó de tus favoritos`,
+                [{ text: 'Entendido', style: 'cancel' }]
+            );
+        } else {
+            const agregado = agregarAFavoritos(producto);
+            if (agregado) {
+                Alert.alert(
+                    '¡Agregado a favoritos!',
+                    `${producto.nombre} se agregó a tus favoritos`,
+                    [
+                        { text: 'Entendido', style: 'cancel' },
+                        {
+                            text: 'Ver favoritos',
+                            onPress: () => navigation.navigate('Favoritos'),
+                            style: 'default'
+                        }
+                    ]
+                );
+            }
+        }
+    };
 
     const handleAgregarCarrito = () => {
         if (sinStock) {
@@ -149,10 +179,18 @@ const DetalleProducto = ({ route, navigation }) => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.botonVolver}
+                            style={[
+                                styles.botonVolver,
+                                estaEnFavoritos && styles.botonFavoritoActivo
+                            ]}
+                            onPress={handleToggleFavorito}
                             activeOpacity={0.8}
                         >
-                            <Ionicons name="heart-outline" size={24} color="#1A1A1A" />
+                            <Ionicons
+                                name={estaEnFavoritos ? "heart" : "heart-outline"}
+                                size={24}
+                                color={estaEnFavoritos ? "#EF4444" : "#1A1A1A"}
+                            />
                         </TouchableOpacity>
                     </View>
 
@@ -406,6 +444,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 5,
+    },
+    botonFavoritoActivo: {
+        backgroundColor: '#FEF2F2',
     },
     badgeDisponibilidad: {
         position: 'absolute',

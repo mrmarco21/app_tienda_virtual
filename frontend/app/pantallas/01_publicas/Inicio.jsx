@@ -16,6 +16,7 @@ import { obtenerProductos, obtenerCategorias, buscarProductos } from '../../serv
 import TarjetaProducto from '../../componentes/02_tarjetas/TarjetaProducto';
 import { Ionicons } from '@expo/vector-icons';
 import { useCarrito } from '../../contexto/CarritoContext';
+import { useFavoritos } from '../../contexto/FavoritosContext';
 import ModalFiltros from '../../componentes/05_modales/ModalFiltros';
 
 const { width } = Dimensions.get('window');
@@ -52,9 +53,11 @@ const Inicio = ({ navigation }) => {
     const [refrescando, setRefrescando] = useState(false);
     const [mostrarModalFiltros, setMostrarModalFiltros] = useState(false);
 
-    // OBTENER CANTIDAD DE PRODUCTOS EN EL CARRITO
+    // OBTENER CANTIDAD DE PRODUCTOS EN EL CARRITO Y FAVORITOS
     const { carrito } = useCarrito();
+    const { favoritos } = useFavoritos();
     const cantidadCarrito = carrito.length;
+    const cantidadFavoritos = favoritos.length;
 
     useEffect(() => {
         cargarDatos();
@@ -250,19 +253,19 @@ const Inicio = ({ navigation }) => {
                         </View>
                     </View>
 
-                    {/* BOTÓN DE CARRITO CON CONTADOR */}
+                    {/* BOTÓN DE FAVORITOS CON CONTADOR */}
                     <TouchableOpacity
-                        style={styles.cartButton}
-                        onPress={() => navigation.navigate('Carrito')}
+                        style={styles.favoritosButton}
+                        onPress={() => navigation.navigate('Favoritos')}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="cart-outline" size={28} color="#1A1A1A" />
+                        <Ionicons name="heart-outline" size={28} color="#1A1A1A" />
 
-                        {/* BADGE CONTADOR - Solo se muestra si hay productos */}
-                        {cantidadCarrito > 0 && (
-                            <View style={styles.cartBadge}>
-                                <Text style={styles.cartBadgeText}>
-                                    {cantidadCarrito > 99 ? '99+' : cantidadCarrito}
+                        {/* BADGE CONTADOR - Solo se muestra si hay favoritos */}
+                        {cantidadFavoritos > 0 && (
+                            <View style={styles.favoritosBadge}>
+                                <Text style={styles.favoritosBadgeText}>
+                                    {cantidadFavoritos > 99 ? '99+' : cantidadFavoritos}
                                 </Text>
                             </View>
                         )}
@@ -437,21 +440,20 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         marginTop: 2,
     },
-    cartButton: {
+    favoritosButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
         backgroundColor: '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',
-        position: 'relative', // Para posicionar el badge
+        position: 'relative',
     },
-    // ESTILOS DEL BADGE
-    cartBadge: {
+    favoritosBadge: {
         position: 'absolute',
         top: -4,
         right: -4,
-        backgroundColor: '#3B82F6',
+        backgroundColor: '#EF4444',
         minWidth: 20,
         height: 20,
         borderRadius: 10,
@@ -461,7 +463,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#FFFFFF',
     },
-    cartBadgeText: {
+    favoritosBadgeText: {
         color: '#FFFFFF',
         fontSize: 11,
         fontWeight: '700',

@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Inicio from './pantallas/01_publicas/Inicio';
 import Carrito from './pantallas/01_publicas/Carrito';
+import Favoritos from './pantallas/01_publicas/Favoritos';
 import Perfil from './pantallas/02_usuario/Perfil';
 import DetalleProducto from './pantallas/01_publicas/DetalleProducto';
 import ConfirmacionCompra from './pantallas/01_publicas/ConfirmacionCompra';
@@ -13,8 +14,14 @@ import PanelAdmin from './pantallas/03_admin/PanelAdmin';
 import GestionPedidos from './pantallas/03_admin/GestionPedidos';
 import Reportes from './pantallas/03_admin/Reportes';
 import { Ionicons } from '@expo/vector-icons';
+import { useCarrito } from './contexto/CarritoContext';
+import { useFavoritos } from './contexto/FavoritosContext';
 
 const NavegacionInterior = () => {
+    const { carrito } = useCarrito();
+    const { favoritos } = useFavoritos();
+    const cantidadCarrito = carrito.length;
+    const cantidadFavoritos = favoritos.length;
     const [pantallaActual, setPantallaActual] = useState('Inicio');
     const [parametros, setParametros] = useState({});
     const [historial, setHistorial] = useState([{ pantalla: 'Inicio', params: {} }]);
@@ -45,6 +52,12 @@ const NavegacionInterior = () => {
             const pantallasPrincipales = ['Inicio', 'Carrito', 'Perfil'];
             if (pantallasPrincipales.includes(pantallaActual)) {
                 return false; // Permite que cierre la app
+            }
+
+            // Si estamos en Favoritos, volver a Inicio
+            if (pantallaActual === 'Favoritos') {
+                navigation.goBack();
+                return true;
             }
 
             // Para cualquier otra pantalla, retroceder
@@ -124,6 +137,8 @@ const NavegacionInterior = () => {
                 return <DetalleProducto navigation={navigation} route={route} />;
             case 'Carrito':
                 return <Carrito navigation={navigation} />;
+            case 'Favoritos':
+                return <Favoritos navigation={navigation} />;
             case 'ConfirmacionCompra':
                 return <ConfirmacionCompra navigation={navigation} />;
             case 'Perfil':
@@ -195,15 +210,27 @@ const NavegacionInterior = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.tab}
+                        style={styles.tabCarrito}
                         onPress={() => navegarDesdeTab('Carrito')}
                         activeOpacity={0.7}
                     >
-                        <Ionicons
-                            name={pantallaActual === 'Carrito' ? 'cart' : 'cart-outline'}
-                            size={24}
-                            color={pantallaActual === 'Carrito' ? '#3B82F6' : '#6B7280'}
-                        />
+                        <View style={[
+                            styles.carritoFloating,
+                            pantallaActual === 'Carrito' && styles.carritoFloatingActive
+                        ]}>
+                            <Ionicons
+                                name={pantallaActual === 'Carrito' ? 'cart' : 'cart-outline'}
+                                size={28}
+                                color="#FFFFFF"
+                            />
+                            {cantidadCarrito > 0 && (
+                                <View style={styles.carritoFloatingBadge}>
+                                    <Text style={styles.carritoFloatingBadgeText}>
+                                        {cantidadCarrito > 99 ? '99+' : cantidadCarrito}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                         <Text style={[styles.tabText, pantallaActual === 'Carrito' && styles.tabTextActive]}>
                             Carrito
                         </Text>
@@ -263,6 +290,50 @@ const styles = StyleSheet.create({
     },
     tabTextActive: {
         color: '#3B82F6',
+        fontWeight: '700',
+    },
+    tabCarrito: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        marginTop: -28,
+    },
+    carritoFloating: {
+        width: 46,
+        height: 46,
+        borderRadius: 25,
+        backgroundColor: '#60a5fabf',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#60A5FA',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
+        position: 'relative',
+    },
+    carritoFloatingActive: {
+        backgroundColor: '#3B82F6',
+        transform: [{ scale: 1.05 }],
+    },
+    carritoFloatingBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#EF4444',
+        minWidth: 22,
+        height: 22,
+        borderRadius: 11,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        borderWidth: 3,
+        borderColor: '#FFFFFF',
+    },
+    carritoFloatingBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 11,
         fontWeight: '700',
     },
     loadingContainer: {
