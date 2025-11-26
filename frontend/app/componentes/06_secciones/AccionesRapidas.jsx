@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
@@ -46,14 +46,17 @@ const AccionesRapidas = ({ navigation }) => {
                 {acciones.map(accion => (
                     <TouchableOpacity
                         key={accion.id}
-                        style={styles.actionCard}
+                        style={[styles.actionCard, { borderColor: accion.bgColor }]}
                         onPress={accion.onPress}
-                        activeOpacity={0.8}
+                        activeOpacity={0.6}
                     >
                         <View style={[styles.actionIconCircle, { backgroundColor: accion.bgColor }]}>
-                            <Ionicons name={accion.icono} size={22} color={accion.color} />
+                            <Ionicons name={accion.icono} size={20} color={accion.color} />
                         </View>
                         <Text style={styles.actionText}>{accion.titulo}</Text>
+                        <View style={styles.arrowContainer}>
+                            <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                        </View>
                     </TouchableOpacity>
                 ))}
             </View>
@@ -64,45 +67,54 @@ const AccionesRapidas = ({ navigation }) => {
 const styles = StyleSheet.create({
     section: {
         paddingHorizontal: 16,
-        marginTop: 24,
+        marginTop: 14,
     },
     sectionTitle: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: '#1A1A1A',
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111827',
         marginBottom: 4,
     },
     actionsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 10,
-        marginTop: 12,
+        gap: 8,
+        marginTop: 10,
     },
     actionCard: {
-        width: (width - 42) / 2,
+        width: (width - 40) / 2,
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        elevation: 2,
+        borderRadius: 10,
+        padding: 14,
+        borderWidth: 2,
+        borderColor: '#F3F4F6',
+        position: 'relative',
     },
     actionIconCircle: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 10,
     },
     actionText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
-        color: '#1A1A1A',
+        color: '#111827',
         textAlign: 'center',
+    },
+    arrowContainer: {
+        position: 'absolute',
+        bottom: 8,
+        right: 8,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#F9FAFB',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
 

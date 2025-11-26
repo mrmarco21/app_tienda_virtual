@@ -45,7 +45,7 @@ const Inicio = ({ navigation }) => {
     const [productos, setProductos] = useState([]);
     const [productosOriginales, setProductosOriginales] = useState([]);
     const [categorias, setCategorias] = useState([]);
-    const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
+    const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState([]); // 🔄 CAMBIO: Array en lugar de string
     const [ordenPrecio, setOrdenPrecio] = useState('');
     const [busqueda, setBusqueda] = useState('');
     const [cargando, setCargando] = useState(true);
@@ -142,14 +142,15 @@ const Inicio = ({ navigation }) => {
     };
 
     const buscar = async () => {
-        if (!busqueda.trim() && !categoriaSeleccionada) {
+        if (!busqueda.trim() && categoriasSeleccionadas.length === 0) { // 🔄 CAMBIO
             cargarDatos();
             return;
         }
 
         try {
             setCargando(true);
-            const res = await buscarProductos(busqueda.trim(), categoriaSeleccionada);
+            // Nota: Si tu API no soporta múltiples categorías, filtramos localmente
+            const res = await buscarProductos(busqueda.trim(), '');
             const productosNormalizados = normalizarRespuesta(res);
             console.log('🔍 Resultados búsqueda:', productosNormalizados.length);
             setProductos(productosNormalizados);
@@ -161,42 +162,34 @@ const Inicio = ({ navigation }) => {
         }
     };
 
-    const filtrarPorCategoria = async (categoria) => {
-        setCategoriaSeleccionada(categoria);
-
-        if (!categoria) {
-            cargarDatos();
-            return;
-        }
-
-        try {
-            setCargando(true);
-            const res = await buscarProductos('', categoria);
-            const productosNormalizados = normalizarRespuesta(res);
-            console.log(`📂 Productos de categoría "${categoria}":`, productosNormalizados.length);
-            setProductos(productosNormalizados);
-        } catch (error) {
-            console.error('❌ Error al filtrar por categoría:', error);
-            Alert.alert('Error', 'Error al filtrar productos');
-        } finally {
-            setCargando(false);
-        }
+    // 🔄 NUEVA FUNCIÓN: Toggle de categorías múltiples
+    const toggleCategoria = (categoria) => {
+        setCategoriasSeleccionadas(prev => {
+            if (prev.includes(categoria)) {
+                // Si ya está seleccionada, la removemos
+                return prev.filter(cat => cat !== categoria);
+            } else {
+                // Si no está seleccionada, la agregamos
+                return [...prev, categoria];
+            }
+        });
     };
 
     const limpiarFiltros = () => {
         setBusqueda('');
-        setCategoriaSeleccionada('');
+        setCategoriasSeleccionadas([]); // 🔄 CAMBIO
         setOrdenPrecio('');
         cargarDatos();
     };
 
+    // 🔄 ACTUALIZADO: Aplicar filtros con múltiples categorías
     const aplicarFiltros = () => {
         let productosFiltrados = [...productosOriginales];
 
-        // Filtrar por categoría
-        if (categoriaSeleccionada) {
-            productosFiltrados = productosFiltrados.filter(
-                p => p.categoria === categoriaSeleccionada
+        // Filtrar por categorías múltiples
+        if (categoriasSeleccionadas.length > 0) {
+            productosFiltrados = productosFiltrados.filter(producto =>
+                categoriasSeleccionadas.includes(producto.categoria)
             );
         }
 
@@ -219,6 +212,16 @@ const Inicio = ({ navigation }) => {
     // Obtener icono para la categoría
     const obtenerIconoCategoria = (categoria) => {
         return ICONOS_CATEGORIAS[categoria] || ICONOS_CATEGORIAS['default'];
+    };
+
+    // 🆕 NUEVA FUNCIÓN: Obtener texto de categorías seleccionadas
+    const obtenerTextoCategoriasSeleccionadas = () => {
+        if (categoriasSeleccionadas.length === 0) return '';
+        if (categoriasSeleccionadas.length === 1) return ` en ${categoriasSeleccionadas[0]}`;
+        if (categoriasSeleccionadas.length === 2) {
+            return ` en ${categoriasSeleccionadas[0]} y ${categoriasSeleccionadas[1]}`;
+        }
+        return ` en ${categoriasSeleccionadas.length} categorías`;
     };
 
     if (cargando && productos.length === 0) {
@@ -282,7 +285,7 @@ const Inicio = ({ navigation }) => {
                             <TouchableOpacity
                                 onPress={() => {
                                     setBusqueda('');
-                                    if (!categoriaSeleccionada && !ordenPrecio) cargarDatos();
+                                    if (categoriasSeleccionadas.length === 0 && !ordenPrecio) cargarDatos(); // 🔄 CAMBIO
                                 }}
                                 style={styles.clearButton}
                             >
@@ -295,7 +298,7 @@ const Inicio = ({ navigation }) => {
                     <TouchableOpacity
                         style={[
                             styles.filterButton,
-                            (categoriaSeleccionada || ordenPrecio) && styles.filterButtonActive
+                            (categoriasSeleccionadas.length > 0 || ordenPrecio) && styles.filterButtonActive // 🔄 CAMBIO
                         ]}
                         onPress={() => setMostrarModalFiltros(true)}
                         activeOpacity={0.7}
@@ -303,9 +306,9 @@ const Inicio = ({ navigation }) => {
                         <Ionicons
                             name="options-outline"
                             size={24}
-                            color={(categoriaSeleccionada || ordenPrecio) ? '#FFFFFF' : '#1A1A1A'}
+                            color={(categoriasSeleccionadas.length > 0 || ordenPrecio) ? '#FFFFFF' : '#1A1A1A'} // 🔄 CAMBIO
                         />
-                        {(categoriaSeleccionada || ordenPrecio) && (
+                        {(categoriasSeleccionadas.length > 0 || ordenPrecio) && ( // 🔄 CAMBIO
                             <View style={styles.filterBadge} />
                         )}
                     </TouchableOpacity>
@@ -316,10 +319,10 @@ const Inicio = ({ navigation }) => {
             <View style={styles.contadorContainer}>
                 <Text style={styles.contadorTexto}>
                     {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
-                    {categoriaSeleccionada && ` en ${categoriaSeleccionada}`}
+                    {obtenerTextoCategoriasSeleccionadas()} {/* 🔄 CAMBIO */}
                     {ordenPrecio && ` • ${ordenPrecio === 'menor' ? 'Menor precio' : 'Mayor precio'}`}
                 </Text>
-                {(busqueda || categoriaSeleccionada || ordenPrecio) && (
+                {(busqueda || categoriasSeleccionadas.length > 0 || ordenPrecio) && ( // 🔄 CAMBIO
                     <TouchableOpacity onPress={limpiarFiltros} activeOpacity={0.7}>
                         <View style={styles.limpiarButton}>
                             <Ionicons name="refresh" size={14} color="#3B82F6" />
@@ -350,11 +353,11 @@ const Inicio = ({ navigation }) => {
                         </View>
                         <Text style={styles.textoVacio}>No se encontraron productos</Text>
                         <Text style={styles.textoVacioSubtitulo}>
-                            {(busqueda || categoriaSeleccionada || ordenPrecio)
+                            {(busqueda || categoriasSeleccionadas.length > 0 || ordenPrecio) // 🔄 CAMBIO
                                 ? 'Intenta con otros términos de búsqueda'
                                 : 'No hay productos disponibles en este momento'}
                         </Text>
-                        {(busqueda || categoriaSeleccionada || ordenPrecio) && (
+                        {(busqueda || categoriasSeleccionadas.length > 0 || ordenPrecio) && ( // 🔄 CAMBIO
                             <TouchableOpacity
                                 style={styles.botonVerTodos}
                                 onPress={limpiarFiltros}
@@ -373,18 +376,18 @@ const Inicio = ({ navigation }) => {
                 }
             />
 
-            {/* Modal de Filtros */}
+            {/* Modal de Filtros -  ACTUALIZADO */}
             <ModalFiltros
                 visible={mostrarModalFiltros}
                 onCerrar={() => setMostrarModalFiltros(false)}
                 categorias={categorias}
-                categoriaSeleccionada={categoriaSeleccionada}
+                categoriasSeleccionadas={categoriasSeleccionadas} // 
                 ordenPrecio={ordenPrecio}
-                onSeleccionarCategoria={setCategoriaSeleccionada}
+                onSeleccionarCategoria={toggleCategoria} //
                 onSeleccionarOrden={setOrdenPrecio}
                 onAplicarFiltros={aplicarFiltros}
                 onLimpiarFiltros={() => {
-                    setCategoriaSeleccionada('');
+                    setCategoriasSeleccionadas([]); // 
                     setOrdenPrecio('');
                 }}
                 obtenerIconoCategoria={obtenerIconoCategoria}

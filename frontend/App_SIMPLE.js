@@ -5,7 +5,6 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>¡Hola! La app funciona</Text>
-      <Text style={styles.subtext}>Si ves esto, el problema está en la navegación</Text>
       <StatusBar style="auto" />
     </View>
   );

@@ -6,7 +6,7 @@ const ModalFiltros = ({
     visible,
     onCerrar,
     categorias,
-    categoriaSeleccionada,
+    categoriasSeleccionadas = [], // Ahora es un array
     ordenPrecio,
     onSeleccionarCategoria,
     onSeleccionarOrden,
@@ -33,7 +33,17 @@ const ModalFiltros = ({
         }
     }, [visible]);
 
-    const hayFiltrosActivos = categoriaSeleccionada || ordenPrecio;
+    const hayFiltrosActivos = categoriasSeleccionadas.length > 0 || ordenPrecio;
+
+    // Función para verificar si una categoría está seleccionada
+    const estaSeleccionada = (categoria) => {
+        return categoriasSeleccionadas.includes(categoria);
+    };
+
+    // Función para manejar el toggle de categorías
+    const toggleCategoria = (categoria) => {
+        onSeleccionarCategoria(categoria);
+    };
 
     return (
         <Modal
@@ -57,7 +67,14 @@ const ModalFiltros = ({
                     <View style={styles.handle} />
 
                     <View style={styles.header}>
-                        <Text style={styles.titulo}>Filtros</Text>
+                        <View>
+                            <Text style={styles.titulo}>Filtros</Text>
+                            {categoriasSeleccionadas.length > 0 && (
+                                <Text style={styles.contadorTexto}>
+                                    {categoriasSeleccionadas.length} {categoriasSeleccionadas.length === 1 ? 'categoría' : 'categorías'}
+                                </Text>
+                            )}
+                        </View>
                         {hayFiltrosActivos && (
                             <TouchableOpacity
                                 onPress={onLimpiarFiltros}
@@ -76,37 +93,8 @@ const ModalFiltros = ({
                         <View style={styles.seccion}>
                             <Text style={styles.seccionTitulo}>Categorías</Text>
                             <View style={styles.opcionesContainer}>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.opcionButton,
-                                        !categoriaSeleccionada && styles.opcionActiva
-                                    ]}
-                                    onPress={() => onSeleccionarCategoria('')}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={[
-                                        styles.iconContainer,
-                                        { backgroundColor: !categoriaSeleccionada ? '#DBEAFE' : '#F3F4F6' }
-                                    ]}>
-                                        <Ionicons
-                                            name="apps"
-                                            size={24}
-                                            color={!categoriaSeleccionada ? '#3B82F6' : '#6B7280'}
-                                        />
-                                    </View>
-                                    <Text style={[
-                                        styles.opcionTexto,
-                                        !categoriaSeleccionada && styles.opcionTextoActiva
-                                    ]}>
-                                        Todas las categorías
-                                    </Text>
-                                    {!categoriaSeleccionada && (
-                                        <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-                                    )}
-                                </TouchableOpacity>
-
                                 {categorias.map((cat, index) => {
-                                    const isSelected = categoriaSeleccionada === cat.categoria;
+                                    const isSelected = estaSeleccionada(cat.categoria);
                                     return (
                                         <TouchableOpacity
                                             key={cat.categoria || index}
@@ -114,7 +102,7 @@ const ModalFiltros = ({
                                                 styles.opcionButton,
                                                 isSelected && styles.opcionActiva
                                             ]}
-                                            onPress={() => onSeleccionarCategoria(cat.categoria)}
+                                            onPress={() => toggleCategoria(cat.categoria)}
                                             activeOpacity={0.7}
                                         >
                                             <View style={[
@@ -206,7 +194,7 @@ const ModalFiltros = ({
                             </View>
                         </View>
 
-                        <View style={{ height: 20 }} />
+                        <View style={{ height: 10 }} />
                     </ScrollView>
 
                     {/* Botones de acción */}
@@ -216,7 +204,10 @@ const ModalFiltros = ({
                             onPress={onAplicarFiltros}
                             activeOpacity={0.7}
                         >
-                            <Text style={styles.botonAplicarTexto}>Aplicar Filtros</Text>
+                            <Text style={styles.botonAplicarTexto}>
+                                Aplicar Filtros
+                                {categoriasSeleccionadas.length > 0 && ` (${categoriasSeleccionadas.length})`}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
@@ -258,6 +249,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#1A1A1A',
     },
+    contadorTexto: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#3B82F6',
+        marginTop: 2,
+    },
     limpiarTexto: {
         fontSize: 14,
         fontWeight: '600',
@@ -282,7 +279,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F9FAFB',
-        padding: 14,
+        padding: 5,
         borderRadius: 12,
         borderWidth: 2,
         borderColor: '#F3F4F6',
@@ -292,9 +289,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#F8FAFC',
     },
     iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
+        width: 40,
+        height: 40,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,

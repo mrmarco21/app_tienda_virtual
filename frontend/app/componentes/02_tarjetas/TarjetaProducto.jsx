@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     categoria: {
-        fontSize: 10,
+        fontSize: 8,
         color: '#6B7280',
         fontWeight: '600',
         textTransform: 'uppercase',

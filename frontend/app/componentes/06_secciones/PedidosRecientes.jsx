@@ -137,6 +137,8 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#3B82F6',
         fontWeight: '700',
+        letterSpacing: 1,
+
     },
     orderCard: {
         backgroundColor: '#FFFFFF',

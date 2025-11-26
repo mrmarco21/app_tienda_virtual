@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, RefreshControl, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { obtenerPedidos, obtenerProductos } from '../../servicios/api';
 import EncabezadoPanelAdmin from '../../componentes/01_basicos/EncabezadoPanelAdmin';
@@ -20,6 +20,16 @@ const PanelAdmin = ({ navigation }) => {
 
     useEffect(() => {
         cargarDatosAdmin();
+    }, []);
+
+    // Manejar el botón de retroceso para que salga de la app en lugar de volver a Perfil
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // Retornar false permite que la app se cierre
+            return false;
+        });
+
+        return () => backHandler.remove();
     }, []);
 
     const cargarDatosAdmin = async () => {

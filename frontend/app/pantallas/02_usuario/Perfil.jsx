@@ -120,7 +120,7 @@ const Perfil = ({ navigation }) => {
             Alert.alert(
                 'Bienvenido Admin',
                 `Accediendo al panel de administración...`,
-                [{ text: 'Continuar', onPress: () => navigation.navigate('Admin') }]
+                [{ text: 'Continuar', onPress: () => navigation.reset('Admin') }]
             );
         } catch (error) {
             Alert.alert('Error de autenticación', error.message || 'Credenciales incorrectas');

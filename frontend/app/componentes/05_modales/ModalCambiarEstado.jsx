@@ -32,13 +32,13 @@ const ModalCambiarEstado = ({
                                 </Text>
                             </View>
                         </View>
-                        <TouchableOpacity
+                        {/* <TouchableOpacity
                             onPress={onClose}
                             style={styles.modalCloseButton}
                             activeOpacity={0.7}
                         >
                             <Ionicons name="close" size={24} color="#6B7280" />
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                     </View>
 
                     {/* Estado Actual */}

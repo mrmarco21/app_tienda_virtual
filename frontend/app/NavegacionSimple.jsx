@@ -21,7 +21,6 @@ const NavegacionInterior = () => {
     const [cargandoInicial, setCargandoInicial] = useState(true);
     const insets = useSafeAreaInsets();
 
-
     // Verificar usuario al cargar la app
     useEffect(() => {
         verificarUsuarioInicial();
@@ -31,19 +30,22 @@ const NavegacionInterior = () => {
     // Manejar el botón de retroceso físico
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // Si estamos en el panel Admin, salir de la app
+            if (pantallaActual === 'Admin') {
+                return false; // Permite que cierre la app
+            }
+
             // Si hay historial, retroceder
             if (historial.length > 1) {
                 navigation.goBack();
                 return true; // Previene que cierre la app
             }
 
-
             // Si estamos en las pantallas principales (tabs), salir de la app
             const pantallasPrincipales = ['Inicio', 'Carrito', 'Perfil'];
             if (pantallasPrincipales.includes(pantallaActual)) {
                 return false; // Permite que cierre la app
             }
-
 
             // Para cualquier otra pantalla, retroceder
             navigation.goBack();
@@ -62,9 +64,7 @@ const NavegacionInterior = () => {
                 const usuario = JSON.parse(usuarioString);
                 const rolLower = usuario.rol?.toLowerCase() || '';
 
-
                 console.log('🔍 Verificando usuario al iniciar app:', usuario.email, 'Rol:', usuario.rol);
-
 
                 // Si es admin o vendedor, redirigir al panel de admin
                 if (rolLower === 'admin' || rolLower === 'vendedor') {
@@ -79,7 +79,6 @@ const NavegacionInterior = () => {
             setCargandoInicial(false);
         }
     };
-
 
     const navigation = {
         navigate: (pantalla, params = {}) => {
@@ -111,7 +110,6 @@ const NavegacionInterior = () => {
             setParametros(params);
         }
     };
-
 
     const route = {
         params: parametros
@@ -147,7 +145,6 @@ const NavegacionInterior = () => {
         }
     };
 
-
     const navegarDesdeTab = (pantalla) => {
         console.log('📱 Tab presionado:', pantalla);
         setHistorial([{ pantalla, params: {} }]);
@@ -168,7 +165,6 @@ const NavegacionInterior = () => {
             </View>
         );
     }
-
 
     return (
         <View style={styles.container}>
@@ -198,7 +194,6 @@ const NavegacionInterior = () => {
                         </Text>
                     </TouchableOpacity>
 
-
                     <TouchableOpacity
                         style={styles.tab}
                         onPress={() => navegarDesdeTab('Carrito')}
@@ -213,7 +208,6 @@ const NavegacionInterior = () => {
                             Carrito
                         </Text>
                     </TouchableOpacity>
-
 
                     <TouchableOpacity
                         style={styles.tab}
@@ -234,7 +228,6 @@ const NavegacionInterior = () => {
         </View>
     );
 };
-
 
 const styles = StyleSheet.create({
     container: {

@@ -20,20 +20,23 @@ const GestionPedidos = ({ navigation, route = {} }) => {
     const scrollViewRef = useRef(null);
     const pedidoRefs = useRef({});
     const [pedidoDestacado, setPedidoDestacado] = useState(null);
+    const scrollRealizadoRef = useRef(false); // Para controlar que solo se haga scroll una vez
 
     useEffect(() => {
         cargarPedidos();
     }, []);
 
-    // Efecto para scroll automático
+    // Efecto para scroll automático (solo la primera vez)
     useEffect(() => {
         console.log('🔍 Route.params:', route?.params);
 
         const pedidoId = route?.params?.pedidoId;
 
-        if (pedidoId && pedidos.length > 0) {
+        // Solo hacer scroll si no se ha realizado antes y hay un pedidoId
+        if (pedidoId && pedidos.length > 0 && !scrollRealizadoRef.current) {
             console.log('🎯 Pedido ID recibido:', pedidoId);
             setPedidoDestacado(pedidoId);
+            scrollRealizadoRef.current = true; // Marcar que ya se hizo el scroll
 
             setTimeout(() => {
                 const pedidoIndex = pedidosFiltrados.findIndex(p => p.id === pedidoId);
@@ -53,13 +56,14 @@ const GestionPedidos = ({ navigation, route = {} }) => {
 
                 setTimeout(() => {
                     setPedidoDestacado(null);
+                    // Limpiar el parámetro después del scroll
                     if (navigation?.setParams) {
                         navigation.setParams({ pedidoId: undefined });
                     }
                 }, 3000);
             }, 500);
         }
-    }, [route?.params?.pedidoId, pedidos, pedidosFiltrados]);
+    }, [route?.params?.pedidoId, pedidos]);
 
     const cargarPedidos = async () => {
         setCargando(true);
@@ -73,6 +77,11 @@ const GestionPedidos = ({ navigation, route = {} }) => {
             }
 
             setPedidos(Array.isArray(pedidosData) ? pedidosData : []);
+
+            // Limpiar el parámetro de pedidoId si existe al recargar manualmente
+            if (navigation?.setParams && route?.params?.pedidoId) {
+                navigation.setParams({ pedidoId: undefined });
+            }
         } catch (error) {
             console.error('Error al cargar pedidos:', error);
             Alert.alert('Error', 'No se pudieron cargar los pedidos');
