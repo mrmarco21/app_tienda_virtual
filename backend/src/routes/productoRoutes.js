@@ -6,7 +6,8 @@ import {
   actualizarProducto,
   eliminarProducto,
   buscarProductos,
-  obtenerCategorias
+  obtenerCategorias,
+  reactivarProducto
 } from '../controllers/productoController.js';
 import { uploadSingle } from '../middleware/upload.js';
 import { verificarAuth, verificarVendedor } from '../middleware/auth.js';
@@ -23,5 +24,6 @@ router.get('/:id', obtenerProductoPorId);
 router.post('/', verificarAuth, verificarVendedor, uploadSingle, crearProducto);
 router.put('/:id', verificarAuth, verificarVendedor, uploadSingle, actualizarProducto);
 router.delete('/:id', verificarAuth, verificarVendedor, eliminarProducto);
+router.patch('/:id/reactivar', verificarAuth, verificarVendedor, reactivarProducto);
 
 export default router;

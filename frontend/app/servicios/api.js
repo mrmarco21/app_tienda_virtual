@@ -1,19 +1,11 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-
-const getDefaultBaseUrl = () => {
-  const port = 3000;
-  if (Platform.OS === 'android') return `http://10.0.2.2:${port}/api`;
-  return `http://localhost:${port}/api`;
-};
-
-const API_BASE_URL = (Constants?.expoConfig?.extra?.apiUrl) || getDefaultBaseUrl();
+import { API_BASE_URL, TIMEOUTS } from '../config/api.config';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: TIMEOUTS.DEFAULT,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -85,6 +77,10 @@ export const eliminarProducto = async (id) => {
   return api.delete(`/productos/${id}`);
 };
 
+export const reactivarProducto = async (id) => {
+  return api.patch(`/productos/${id}/reactivar`);
+};
+
 // Pedidos
 export const crearPedido = async (data) => {
   return api.post('/pedidos', data);
@@ -122,24 +118,53 @@ export const loginUsuario = async (data) => {
 
 // Subir imagen
 export const subirImagen = async (imageUri) => {
-  const formData = new FormData();
-  
-  const filename = imageUri.split('/').pop();
-  const match = /\.(\w+)$/.exec(filename);
-  const type = match ? `image/${match[1]}` : 'image/jpeg';
+  try {
+    console.log('📤 Iniciando subida de imagen...');
+    console.log('URI:', imageUri);
+    
+    const formData = new FormData();
+    
+    const filename = imageUri.split('/').pop();
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-  formData.append('imagen', {
-    uri: Platform.OS === 'ios' ? imageUri.replace('file://', '') : imageUri,
-    name: filename,
-    type: type,
-  });
+    formData.append('imagen', {
+      uri: Platform.OS === 'ios' ? imageUri.replace('file://', '') : imageUri,
+      name: filename,
+      type: type,
+    });
 
-  return axios.post(`${API_BASE_URL}/upload-imagen`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-    timeout: 30000, // 30 segundos para subida de imágenes
-  });
+    // Obtener el token manualmente
+    const token = await AsyncStorage.getItem('token');
+    console.log('Token presente:', !!token);
+
+    // Usar axios directamente con configuración completa
+    const response = await axios({
+      method: 'post',
+      url: `${API_BASE_URL}/upload-imagen`,
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Accept': 'application/json',
+      },
+      timeout: TIMEOUTS.UPLOAD,
+      transformRequest: (data, headers) => {
+        // No transformar FormData
+        return data;
+      },
+    });
+
+    console.log('✅ Imagen subida exitosamente');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error al subir imagen:', error.message);
+    if (error.response) {
+      console.error('Respuesta del servidor:', error.response.data);
+      throw new Error(error.response.data.message || 'Error al subir la imagen');
+    }
+    throw error;
+  }
 };
 
 export default api;

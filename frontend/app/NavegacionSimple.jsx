@@ -1,32 +1,47 @@
 import { useState, useEffect } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Inicio from './pantallas/Inicio';
-import Carrito from './pantallas/Carrito';
-import Perfil from './pantallas/Perfil';
-import DetalleProducto from './pantallas/DetalleProducto';
-import ConfirmacionCompra from './pantallas/ConfirmacionCompra';
-import GestionProductos from './pantallas/admin/GestionProductos';
-import FormularioProducto from './pantallas/admin/FormularioProducto';
-import PanelAdmin from './pantallas/admin/PanelAdmin';
-import GestionPedidos from './pantallas/admin/GestionPedidos';
-import Reportes from './pantallas/admin/Reportes';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Inicio from './pantallas/01_publicas/Inicio';
+import Carrito from './pantallas/01_publicas/Carrito';
+import Favoritos from './pantallas/01_publicas/Favoritos';
+import Perfil from './pantallas/02_usuario/Perfil';
+import DetalleProducto from './pantallas/01_publicas/DetalleProducto';
+import ConfirmacionCompra from './pantallas/01_publicas/ConfirmacionCompra';
+import GestionProductos from './pantallas/03_admin/GestionProductos';
+import FormularioProducto from './pantallas/03_admin/FormularioProducto';
+import PanelAdmin from './pantallas/03_admin/PanelAdmin';
+import GestionPedidos from './pantallas/03_admin/GestionPedidos';
+import Reportes from './pantallas/03_admin/Reportes';
 import { Ionicons } from '@expo/vector-icons';
+import { useCarrito } from './contexto/CarritoContext';
+import { useFavoritos } from './contexto/FavoritosContext';
 
-const NavegacionSimple = () => {
+const NavegacionInterior = () => {
+    const { carrito } = useCarrito();
+    const { favoritos } = useFavoritos();
+    const cantidadCarrito = carrito.length;
+    const cantidadFavoritos = favoritos.length;
     const [pantallaActual, setPantallaActual] = useState('Inicio');
     const [parametros, setParametros] = useState({});
     const [historial, setHistorial] = useState([{ pantalla: 'Inicio', params: {} }]);
     const [cargandoInicial, setCargandoInicial] = useState(true);
+    const insets = useSafeAreaInsets();
 
     // Verificar usuario al cargar la app
     useEffect(() => {
         verificarUsuarioInicial();
     }, []);
 
+
     // Manejar el botón de retroceso físico
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // Si estamos en el panel Admin, salir de la app
+            if (pantallaActual === 'Admin') {
+                return false; // Permite que cierre la app
+            }
+
             // Si hay historial, retroceder
             if (historial.length > 1) {
                 navigation.goBack();
@@ -39,13 +54,21 @@ const NavegacionSimple = () => {
                 return false; // Permite que cierre la app
             }
 
+            // Si estamos en Favoritos, volver a Inicio
+            if (pantallaActual === 'Favoritos') {
+                navigation.goBack();
+                return true;
+            }
+
             // Para cualquier otra pantalla, retroceder
             navigation.goBack();
             return true;
         });
 
+
         return () => backHandler.remove();
     }, [historial, pantallaActual]);
+
 
     const verificarUsuarioInicial = async () => {
         try {
@@ -83,7 +106,9 @@ const NavegacionSimple = () => {
                 const nuevoHistorial = [...historial];
                 nuevoHistorial.pop();
 
+
                 const pantallaAnterior = nuevoHistorial[nuevoHistorial.length - 1];
+
 
                 setHistorial(nuevoHistorial);
                 setPantallaActual(pantallaAnterior.pantalla);
@@ -103,6 +128,7 @@ const NavegacionSimple = () => {
         params: parametros
     };
 
+
     const renderPantalla = () => {
         switch (pantallaActual) {
             case 'Inicio':
@@ -111,6 +137,8 @@ const NavegacionSimple = () => {
                 return <DetalleProducto navigation={navigation} route={route} />;
             case 'Carrito':
                 return <Carrito navigation={navigation} />;
+            case 'Favoritos':
+                return <Favoritos navigation={navigation} />;
             case 'ConfirmacionCompra':
                 return <ConfirmacionCompra navigation={navigation} />;
             case 'Perfil':
@@ -120,7 +148,7 @@ const NavegacionSimple = () => {
             case 'GestionProductos':
                 return <GestionProductos navigation={navigation} />;
             case 'GestionPedidos':
-                return <GestionPedidos navigation={navigation} route={route} />; // ✅ AGREGAR route
+                return <GestionPedidos navigation={navigation} route={route} />;
             case 'AgregarProducto':
                 return <FormularioProducto navigation={navigation} route={route} />;
             case 'EditarProducto':
@@ -132,7 +160,6 @@ const NavegacionSimple = () => {
         }
     };
 
-
     const navegarDesdeTab = (pantalla) => {
         console.log('📱 Tab presionado:', pantalla);
         setHistorial([{ pantalla, params: {} }]);
@@ -140,8 +167,10 @@ const NavegacionSimple = () => {
         setParametros({});
     };
 
+
     // Determinar si estamos en una pantalla de admin
     const isAdminScreen = ['Admin', 'GestionProductos', 'GestionPedidos', 'AgregarProducto', 'EditarProducto', 'Reportes'].includes(pantallaActual);
+
 
     // Mostrar pantalla de carga mientras se verifica el usuario
     if (cargandoInicial) {
@@ -158,9 +187,13 @@ const NavegacionSimple = () => {
                 {renderPantalla()}
             </View>
 
+
             {/* Barra de navegación inferior - Solo visible en pantallas de usuario */}
             {!isAdminScreen && (
-                <View style={styles.tabBar}>
+                <View style={[
+                    styles.tabBar,
+                    { paddingBottom: Math.max(insets.bottom, 8) }
+                ]}>
                     <TouchableOpacity
                         style={styles.tab}
                         onPress={() => navegarDesdeTab('Inicio')}
@@ -177,15 +210,27 @@ const NavegacionSimple = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.tab}
+                        style={styles.tabCarrito}
                         onPress={() => navegarDesdeTab('Carrito')}
                         activeOpacity={0.7}
                     >
-                        <Ionicons
-                            name={pantallaActual === 'Carrito' ? 'cart' : 'cart-outline'}
-                            size={24}
-                            color={pantallaActual === 'Carrito' ? '#3B82F6' : '#6B7280'}
-                        />
+                        <View style={[
+                            styles.carritoFloating,
+                            pantallaActual === 'Carrito' && styles.carritoFloatingActive
+                        ]}>
+                            <Ionicons
+                                name={pantallaActual === 'Carrito' ? 'cart' : 'cart-outline'}
+                                size={28}
+                                color="#FFFFFF"
+                            />
+                            {cantidadCarrito > 0 && (
+                                <View style={styles.carritoFloatingBadge}>
+                                    <Text style={styles.carritoFloatingBadgeText}>
+                                        {cantidadCarrito > 99 ? '99+' : cantidadCarrito}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                         <Text style={[styles.tabText, pantallaActual === 'Carrito' && styles.tabTextActive]}>
                             Carrito
                         </Text>
@@ -224,7 +269,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderTopWidth: 1,
         borderTopColor: '#E5E7EB',
-        paddingBottom: 8,
         paddingTop: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -2 },
@@ -248,6 +292,50 @@ const styles = StyleSheet.create({
         color: '#3B82F6',
         fontWeight: '700',
     },
+    tabCarrito: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        marginTop: -28,
+    },
+    carritoFloating: {
+        width: 46,
+        height: 46,
+        borderRadius: 25,
+        backgroundColor: '#8abaf5ad',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#60A5FA',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
+        position: 'relative',
+    },
+    carritoFloatingActive: {
+        backgroundColor: '#3B82F6',
+        transform: [{ scale: 1.05 }],
+    },
+    carritoFloatingBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#EF4444',
+        minWidth: 22,
+        height: 22,
+        borderRadius: 11,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        borderWidth: 3,
+        borderColor: '#FFFFFF',
+    },
+    carritoFloatingBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '700',
+    },
     loadingContainer: {
         justifyContent: 'center',
         alignItems: 'center',
@@ -259,5 +347,16 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 });
+
+
+// Envolver el componente con SafeAreaProvider
+const NavegacionSimple = () => {
+    return (
+        <SafeAreaProvider>
+            <NavegacionInterior />
+        </SafeAreaProvider>
+    );
+};
+
 
 export default NavegacionSimple;
