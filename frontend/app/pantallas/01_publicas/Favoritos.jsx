@@ -14,7 +14,12 @@ import { useCarrito } from '../../contexto/CarritoContext';
 
 const Favoritos = ({ navigation }) => {
     const { favoritos, eliminarDeFavoritos } = useFavoritos();
-    const { agregarAlCarrito } = useCarrito();
+    const { agregarAlCarrito, carrito } = useCarrito();
+
+    // Función para verificar si un producto ya está en el carrito
+    const estaEnCarrito = (productoId) => {
+        return carrito.some(item => item.id === productoId);
+    };
 
     const handleEliminar = (producto) => {
         Alert.alert(
@@ -53,6 +58,7 @@ const Favoritos = ({ navigation }) => {
 
     const renderProducto = ({ item }) => {
         const sinStock = item.stock <= 0;
+        const yaEnCarrito = estaEnCarrito(item.id);
 
         return (
             <TouchableOpacity
@@ -113,22 +119,24 @@ const Favoritos = ({ navigation }) => {
                         <TouchableOpacity
                             style={[
                                 styles.botonCarrito,
-                                sinStock && styles.botonDeshabilitado
+                                sinStock && styles.botonDeshabilitado,
+                                yaEnCarrito && styles.botonEnCarrito
                             ]}
-                            onPress={() => handleAgregarAlCarrito(item)}
+                            onPress={() => yaEnCarrito ? navigation.navigate('Carrito') : handleAgregarAlCarrito(item)}
                             disabled={sinStock}
                             activeOpacity={0.7}
                         >
                             <Ionicons
-                                name="cart-outline"
+                                name={yaEnCarrito ? "checkmark-circle" : "cart-outline"}
                                 size={18}
-                                color={sinStock ? "#9CA3AF" : "#FFFFFF"}
+                                color={sinStock ? "#9CA3AF" : yaEnCarrito ? "#10B981" : "#FFFFFF"}
                             />
                             <Text style={[
                                 styles.textoBotonCarrito,
-                                sinStock && styles.textoBotonDeshabilitado
+                                sinStock && styles.textoBotonDeshabilitado,
+                                yaEnCarrito && styles.textoBotonEnCarrito
                             ]}>
-                                {sinStock ? 'No disponible' : 'Agregar'}
+                                {sinStock ? 'No disponible' : yaEnCarrito ? 'En carrito' : 'Agregar'}
                             </Text>
                         </TouchableOpacity>
 
@@ -379,6 +387,11 @@ const styles = StyleSheet.create({
     botonDeshabilitado: {
         backgroundColor: '#E5E7EB',
     },
+    botonEnCarrito: {
+        backgroundColor: '#ECFDF5',
+        borderWidth: 1,
+        borderColor: '#10B981',
+    },
     textoBotonCarrito: {
         color: '#FFFFFF',
         fontSize: 13,
@@ -386,6 +399,9 @@ const styles = StyleSheet.create({
     },
     textoBotonDeshabilitado: {
         color: '#9CA3AF',
+    },
+    textoBotonEnCarrito: {
+        color: '#10B981',
     },
     botonEliminar: {
         width: 40,

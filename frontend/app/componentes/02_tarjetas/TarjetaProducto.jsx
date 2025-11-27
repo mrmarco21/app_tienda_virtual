@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'rea
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 32) / 2;
+const CARD_WIDTH = (width - 40) / 2; // Reducido para mejor ajuste
 
 const TarjetaProducto = ({ producto, onPress }) => {
     const stockBajo = producto.stock < 10;
@@ -88,10 +88,10 @@ const TarjetaProducto = ({ producto, onPress }) => {
                 styles.accionIndicador,
                 sinStock && styles.accionIndicadorDeshabilitado
             ]}>
-                <Icon 
-                    name={sinStock ? "lock-closed" : "arrow-forward"} 
-                    size={16} 
-                    color={sinStock ? "#9CA3AF" : "#3B82F6"} 
+                <Icon
+                    name={sinStock ? "lock-closed" : "arrow-forward"}
+                    size={16}
+                    color={sinStock ? "#9CA3AF" : "#3B82F6"}
                 />
             </View>
         </TouchableOpacity>
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     },
     imagenContainer: {
         width: '100%',
-        height: CARD_WIDTH * 1.1,
+        height: CARD_WIDTH * 0.85, // Reducido de 1.1 a 0.85
         backgroundColor: '#F9FAFB',
         position: 'relative',
         overflow: 'hidden',
@@ -169,8 +169,8 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     info: {
-        padding: 12,
-        gap: 6,
+        padding: 10, // Reducido de 12 a 10
+        gap: 4, // Reducido de 6 a 4
     },
     categoriaContainer: {
         flexDirection: 'row',
@@ -193,26 +193,26 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     nombre: {
-        fontSize: 14,
+        fontSize: 13, // Reducido de 14 a 13
         fontWeight: '600',
         color: '#1A1A1A',
-        lineHeight: 19,
-        minHeight: 38,
-        marginBottom: 4,
+        lineHeight: 17, // Reducido de 19 a 17
+        minHeight: 34, // Reducido de 38 a 34
+        marginBottom: 3, // Reducido de 4 a 3
     },
     precioContainer: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        marginBottom: 6,
+        marginBottom: 4, // Reducido de 6 a 4
     },
     simboloMoneda: {
-        fontSize: 14,
+        fontSize: 12, // Reducido de 14 a 12
         fontWeight: '600',
         color: '#6B7280',
         marginRight: 2,
     },
     precio: {
-        fontSize: 20,
+        fontSize: 18, // Reducido de 20 a 18
         fontWeight: '700',
         color: '#1A1A1A',
         letterSpacing: -0.5,
@@ -221,27 +221,27 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F9FAFB',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 8,
+        paddingVertical: 4, // Reducido de 6 a 4
+        paddingHorizontal: 8, // Reducido de 10 a 8
+        borderRadius: 6, // Reducido de 8 a 6
         alignSelf: 'flex-start',
     },
     stockTexto: {
-        fontSize: 11,
+        fontSize: 10, // Reducido de 11 a 10
         color: '#10B981',
         fontWeight: '600',
-        marginLeft: 5,
+        marginLeft: 4, // Reducido de 5 a 4
     },
     stockAgotado: {
         color: '#EF4444',
     },
     accionIndicador: {
         position: 'absolute',
-        bottom: 12,
-        right: 12,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        bottom: 10, // Reducido de 12 a 10
+        right: 10, // Reducido de 12 a 10
+        width: 28, // Reducido de 32 a 28
+        height: 28, // Reducido de 32 a 28
+        borderRadius: 14, // Reducido de 16 a 14
         backgroundColor: '#EFF6FF',
         justifyContent: 'center',
         alignItems: 'center',

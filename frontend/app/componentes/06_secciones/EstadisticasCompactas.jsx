@@ -7,7 +7,7 @@ const EstadisticasCompactas = ({ estadisticas, onRefresh }) => {
     return (
         <View style={styles.statsSection}>
             <View style={styles.statsSectionHeader}>
-                <Text style={styles.sectionMainTitle}>Resumen</Text>
+                <Text style={styles.sectionMainTitle}>Estadísticas</Text>
                 <TouchableOpacity style={styles.refreshMiniButton} onPress={onRefresh}>
                     <Ionicons name="refresh" size={14} color="#6B7280" />
                 </TouchableOpacity>
@@ -84,6 +84,7 @@ const styles = StyleSheet.create({
         fontSize: 17,
         fontWeight: '600',
         color: '#111827',
+        letterSpacing: 0.8,
     },
     refreshMiniButton: {
         width: 26,

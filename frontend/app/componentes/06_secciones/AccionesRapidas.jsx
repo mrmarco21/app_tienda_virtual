@@ -7,7 +7,7 @@ const AccionesRapidas = ({ navigation }) => {
     const acciones = [
         {
             id: 'productos',
-            titulo: 'Productos',
+            titulo: 'Gestionar Productos',
             icono: 'cube',
             color: '#3B82F6',
             bgColor: '#EFF6FF',
@@ -23,7 +23,7 @@ const AccionesRapidas = ({ navigation }) => {
         },
         {
             id: 'agregar',
-            titulo: 'Agregar',
+            titulo: 'Agregar Producto',
             icono: 'add-circle',
             color: '#10B981',
             bgColor: '#ECFDF5',
@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#111827',
         marginBottom: 4,
+        letterSpacing:0.8
     },
     actionsGrid: {
         flexDirection: 'row',

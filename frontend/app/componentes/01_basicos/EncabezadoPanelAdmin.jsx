@@ -113,7 +113,8 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#6B7280',
         fontWeight: '500',
-        marginTop: 2,
+        marginTop: 1,
+        letterSpacing:1,
     },
     logoutButton: {
         width: 36,
