@@ -16,7 +16,6 @@ const Favoritos = ({ navigation }) => {
     const { favoritos, eliminarDeFavoritos } = useFavoritos();
     const { agregarAlCarrito, carrito } = useCarrito();
 
-    // Función para verificar si un producto ya está en el carrito
     const estaEnCarrito = (productoId) => {
         return carrito.some(item => item.id === productoId);
     };
@@ -44,7 +43,7 @@ const Favoritos = ({ navigation }) => {
 
         agregarAlCarrito(producto);
         Alert.alert(
-            '¡Agregado!',
+            'Agregado al carrito',
             `${producto.nombre} se agregó al carrito`,
             [
                 { text: 'Seguir viendo', style: 'cancel' },
@@ -61,122 +60,136 @@ const Favoritos = ({ navigation }) => {
         const yaEnCarrito = estaEnCarrito(item.id);
 
         return (
-            <TouchableOpacity
-                style={styles.productoCard}
-                onPress={() => navigation.navigate('DetalleProducto', { producto: item })}
-                activeOpacity={0.7}
-            >
-                <View style={styles.imagenContainer}>
+            <View style={styles.productoCard}>
+                {/* Imagen superior con overlay */}
+                <TouchableOpacity
+                    style={styles.imagenSection}
+                    onPress={() => navigation.navigate('DetalleProducto', { producto: item })}
+                    activeOpacity={0.9}
+                >
                     <Image
                         source={{
                             uri: item.imagen || 'https://via.placeholder.com/150/f0f0f0/999999?text=Sin+Imagen'
                         }}
                         style={styles.imagen}
-                        resizeMode="contain"
+                        resizeMode="cover"
                     />
-                    {sinStock && (
-                        <View style={styles.badgeSinStock}>
-                            <Text style={styles.badgeTexto}>Agotado</Text>
+                    
+                    {/* Overlay con gradiente */}
+                    <View style={styles.imageOverlay} />
+                    
+                    {/* Badges flotantes */}
+                    <View style={styles.badgesContainer}>
+                        <View style={styles.categoriaFloatingTag}>
+                            <Ionicons name="pricetag" size={10} color="#3B82F6" />
+                            <Text style={styles.categoriaFloatingTexto}>{item.categoria}</Text>
                         </View>
-                    )}
-                </View>
-
-                <View style={styles.infoContainer}>
-                    <View style={styles.infoTop}>
-                        <View style={styles.categoriaTag}>
-                            <Text style={styles.categoriaTexto}>{item.categoria}</Text>
-                        </View>
-                    </View>
-
-                    <Text style={styles.nombre} numberOfLines={2}>
-                        {item.nombre}
-                    </Text>
-
-                    <View style={styles.precioRow}>
-                        <View style={styles.precioContainer}>
-                            <Text style={styles.simboloPrecio}>S/</Text>
-                            <Text style={styles.precio}>
-                                {parseFloat(item.precio).toFixed(2)}
-                            </Text>
-                        </View>
-
-                        <View style={styles.stockInfo}>
-                            <Ionicons
-                                name={sinStock ? "close-circle" : "checkmark-circle"}
-                                size={14}
-                                color={sinStock ? "#EF4444" : "#10B981"}
-                            />
-                            <Text style={[
-                                styles.stockTexto,
-                                sinStock && styles.stockTextoSinStock
-                            ]}>
-                                {sinStock ? 'Sin stock' : `${item.stock} disponibles`}
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.accionesRow}>
+                        
                         <TouchableOpacity
-                            style={[
-                                styles.botonCarrito,
-                                sinStock && styles.botonDeshabilitado,
-                                yaEnCarrito && styles.botonEnCarrito
-                            ]}
-                            onPress={() => yaEnCarrito ? navigation.navigate('Carrito') : handleAgregarAlCarrito(item)}
-                            disabled={sinStock}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons
-                                name={yaEnCarrito ? "checkmark-circle" : "cart-outline"}
-                                size={18}
-                                color={sinStock ? "#9CA3AF" : yaEnCarrito ? "#10B981" : "#FFFFFF"}
-                            />
-                            <Text style={[
-                                styles.textoBotonCarrito,
-                                sinStock && styles.textoBotonDeshabilitado,
-                                yaEnCarrito && styles.textoBotonEnCarrito
-                            ]}>
-                                {sinStock ? 'No disponible' : yaEnCarrito ? 'En carrito' : 'Agregar'}
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.botonEliminar}
+                            style={styles.heartButton}
                             onPress={() => handleEliminar(item)}
                             activeOpacity={0.7}
                         >
                             <Ionicons name="heart" size={20} color="#EF4444" />
                         </TouchableOpacity>
                     </View>
+
+                    {sinStock && (
+                        <View style={styles.sinStockOverlay}>
+                            <View style={styles.sinStockBadge}>
+                                <Ionicons name="close-circle" size={16} color="#FFFFFF" />
+                                <Text style={styles.sinStockTexto}>Agotado</Text>
+                            </View>
+                        </View>
+                    )}
+                </TouchableOpacity>
+
+                {/* Información inferior */}
+                <View style={styles.infoSection}>
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('DetalleProducto', { producto: item })}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.nombre} numberOfLines={2}>
+                            {item.nombre}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.precioStockContainer}>
+                        <View style={styles.precioBox}>
+                            <Text style={styles.precioLabel}>Precio</Text>
+                            <Text style={styles.precio}>S/ {parseFloat(item.precio).toFixed(2)}</Text>
+                        </View>
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.stockBox}>
+                            <Text style={styles.stockLabel}>Stock</Text>
+                            <View style={styles.stockValueContainer}>
+                                <Ionicons
+                                    name={sinStock ? "close-circle" : "cube-outline"}
+                                    size={14}
+                                    color={sinStock ? "#EF4444" : "#10B981"}
+                                />
+                                <Text style={[
+                                    styles.stockValue,
+                                    sinStock && styles.stockValueSinStock
+                                ]}>
+                                    {sinStock ? 'No disp.' : item.stock}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Botón de acción */}
+                    <TouchableOpacity
+                        style={[
+                            styles.botonAccion,
+                            sinStock && styles.botonAccionDeshabilitado,
+                            yaEnCarrito && styles.botonAccionEnCarrito
+                        ]}
+                        onPress={() => yaEnCarrito ? navigation.navigate('Carrito') : handleAgregarAlCarrito(item)}
+                        disabled={sinStock}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name={yaEnCarrito ? "checkmark-circle" : "cart"}
+                            size={20}
+                            color={sinStock ? "#9CA3AF" : "#FFFFFF"}
+                        />
+                        <Text style={[
+                            styles.textoBotonAccion,
+                            sinStock && styles.textoBotonAccionDeshabilitado
+                        ]}>
+                            {sinStock ? 'No disponible' : yaEnCarrito ? 'Ver en carrito' : 'Agregar al carrito'}
+                        </Text>
+                        {!sinStock && (
+                            <Ionicons
+                                name="arrow-forward"
+                                size={18}
+                                color="#FFFFFF"
+                            />
+                        )}
+                    </TouchableOpacity>
                 </View>
-            </TouchableOpacity>
+            </View>
         );
     };
 
     return (
         <View style={styles.container}>
-            {/* Header */}
+            {/* Header minimalista */}
             <View style={styles.header}>
                 <View style={styles.headerContent}>
                     <View style={styles.headerLeft}>
-                        <View style={styles.iconContainer}>
-                            <Ionicons name="heart" size={28} color="#EF4444" />
-                        </View>
-                        <View>
-                            <Text style={styles.titulo}>Mis Favoritos</Text>
+                        <Ionicons name="heart" size={24} color="#EF4444" />
+                        <View style={styles.headerTextContainer}>
+                            <Text style={styles.titulo}>Favoritos</Text>
                             <Text style={styles.subtitulo}>
                                 {favoritos.length} {favoritos.length === 1 ? 'producto' : 'productos'}
                             </Text>
                         </View>
                     </View>
-
-                    {/* <TouchableOpacity
-                        style={styles.botonCarritoHeader}
-                        onPress={() => navigation.navigate('Carrito')}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="cart-outline" size={24} color="#1A1A1A" />
-                    </TouchableOpacity> */}
                 </View>
             </View>
 
@@ -184,7 +197,7 @@ const Favoritos = ({ navigation }) => {
             {favoritos.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <View style={styles.emptyIconContainer}>
-                        <Ionicons name="heart-outline" size={80} color="#D1D5DB" />
+                        <Ionicons name="heart-outline" size={64} color="#D1D5DB" />
                     </View>
                     <Text style={styles.textoVacio}>No tienes favoritos</Text>
                     <Text style={styles.textoVacioSubtitulo}>
@@ -195,7 +208,7 @@ const Favoritos = ({ navigation }) => {
                         onPress={() => navigation.navigate('Inicio')}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="search" size={20} color="#FFFFFF" />
+                        <Ionicons name="search-outline" size={18} color="#FFFFFF" />
                         <Text style={styles.textoBotonExplorar}>Explorar productos</Text>
                     </TouchableOpacity>
                 </View>
@@ -219,14 +232,11 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: '#FFFFFF',
-        paddingTop: 40,
+        paddingTop: 48,
         paddingBottom: 16,
-        paddingHorizontal: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
     },
     headerContent: {
         flexDirection: 'row',
@@ -238,178 +248,217 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
     },
-    iconContainer: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#FEF2F2',
-        justifyContent: 'center',
-        alignItems: 'center',
+    headerTextContainer: {
+        gap: 2,
     },
     titulo: {
-        fontSize: 24,
-        fontWeight: '700',
+        fontSize: 22,
+        fontWeight: '600',
         color: '#1A1A1A',
+        letterSpacing: -0.3,
     },
     subtitulo: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#6B7280',
-        marginTop: 2,
-    },
-    botonCarritoHeader: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#F3F4F6',
-        justifyContent: 'center',
-        alignItems: 'center',
+        fontWeight: '400',
     },
     lista: {
         padding: 16,
+        paddingBottom: 32,
     },
     productoCard: {
-        flexDirection: 'row',
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        marginBottom: 12,
+        marginBottom: 16,
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
     },
-    imagenContainer: {
-        width: 120,
-        height: 120,
-        backgroundColor: '#F9FAFB',
-        justifyContent: 'center',
-        alignItems: 'center',
+    imagenSection: {
+        width: '100%',
+        height: 160,
         position: 'relative',
+        backgroundColor: '#FAFAFA',
     },
     imagen: {
-        width: '80%',
-        height: '80%',
+        width: '100%',
+        height: '100%',
     },
-    badgeSinStock: {
+    imageOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    },
+    badgesContainer: {
         position: 'absolute',
-        top: 8,
-        left: 8,
-        backgroundColor: '#EF4444',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-    },
-    badgeTexto: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    infoContainer: {
-        flex: 1,
-        padding: 12,
-        justifyContent: 'space-between',
-    },
-    infoTop: {
+        top: 12,
+        left: 12,
+        right: 12,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    categoriaTag: {
-        backgroundColor: '#EFF6FF',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
+    categoriaFloatingTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
+        gap: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    categoriaTexto: {
-        fontSize: 10,
+    categoriaFloatingTexto: {
+        fontSize: 11,
         color: '#3B82F6',
-        fontWeight: '600',
+        fontWeight: '700',
+        letterSpacing: 0.5,
         textTransform: 'uppercase',
     },
+    heartButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    sinStockOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sinStockBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#EF4444',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 25,
+        gap: 6,
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    sinStockTexto: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
+    infoSection: {
+        padding: 16,
+    },
     nombre: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '600',
         color: '#1A1A1A',
-        marginTop: 4,
-        lineHeight: 20,
+        lineHeight: 22,
+        marginBottom: 12,
     },
-    precioRow: {
+    precioStockContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 12,
         alignItems: 'center',
-        marginTop: 4,
     },
-    precioContainer: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
+    precioBox: {
+        flex: 1,
     },
-    simboloPrecio: {
-        fontSize: 12,
-        fontWeight: '600',
+    precioLabel: {
+        fontSize: 10,
         color: '#6B7280',
-        marginRight: 2,
+        fontWeight: '500',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 4,
     },
     precio: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '700',
         color: '#1A1A1A',
+        letterSpacing: -0.5,
     },
-    stockInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
+    divider: {
+        width: 1,
+        height: 40,
+        backgroundColor: '#E5E7EB',
+        marginHorizontal: 16,
     },
-    stockTexto: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: '#10B981',
-    },
-    stockTextoSinStock: {
-        color: '#EF4444',
-    },
-    accionesRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginTop: 8,
-    },
-    botonCarrito: {
+    stockBox: {
         flex: 1,
+        alignItems: 'flex-end',
+    },
+    stockLabel: {
+        fontSize: 10,
+        color: '#6B7280',
+        fontWeight: '500',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 4,
+    },
+    stockValueContainer: {
         flexDirection: 'row',
-        backgroundColor: '#3B82F6',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        justifyContent: 'center',
         alignItems: 'center',
         gap: 6,
     },
-    botonDeshabilitado: {
-        backgroundColor: '#E5E7EB',
-    },
-    botonEnCarrito: {
-        backgroundColor: '#ECFDF5',
-        borderWidth: 1,
-        borderColor: '#10B981',
-    },
-    textoBotonCarrito: {
-        color: '#FFFFFF',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    textoBotonDeshabilitado: {
-        color: '#9CA3AF',
-    },
-    textoBotonEnCarrito: {
+    stockValue: {
+        fontSize: 18,
+        fontWeight: '700',
         color: '#10B981',
     },
-    botonEliminar: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        backgroundColor: '#FEF2F2',
+    stockValueSinStock: {
+        color: '#EF4444',
+        fontSize: 14,
+    },
+    botonAccion: {
+        flexDirection: 'row',
+        backgroundColor: '#3B82F6',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
+        gap: 8,
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    botonAccionDeshabilitado: {
+        backgroundColor: '#E5E7EB',
+        shadowColor: 'transparent',
+    },
+    botonAccionEnCarrito: {
+        backgroundColor: '#10B981',
+        shadowColor: '#10B981',
+    },
+    textoBotonAccion: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
+    textoBotonAccionDeshabilitado: {
+        color: '#9CA3AF',
     },
     emptyContainer: {
         flex: 1,
@@ -418,39 +467,43 @@ const styles = StyleSheet.create({
         paddingHorizontal: 40,
     },
     emptyIconContainer: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        backgroundColor: '#FEF2F2',
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#FAFAFA',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 20,
+        borderWidth: 2,
+        borderColor: '#F3F4F6',
     },
     textoVacio: {
-        fontSize: 20,
-        fontWeight: '700',
+        fontSize: 18,
+        fontWeight: '600',
         color: '#1A1A1A',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     textoVacioSubtitulo: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#9CA3AF',
         textAlign: 'center',
         marginBottom: 24,
+        lineHeight: 18,
     },
     botonExplorar: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#3B82F6',
         paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 12,
-        gap: 8,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        gap: 6,
     },
     textoBotonExplorar: {
         color: '#FFFFFF',
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '600',
+        letterSpacing: 0.2,
     },
 });
 

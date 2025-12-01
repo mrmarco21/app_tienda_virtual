@@ -15,8 +15,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCarrito } from '../../contexto/CarritoContext';
-import { crearPedido } from '../../servicios/api';
+import { crearPedido, obtenerDirecciones, crearDireccion } from '../../servicios/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ModalSelectorDireccion from '../../componentes/05_modales/ModalSelectorDireccion';
+import ModalDireccion from '../../componentes/05_modales/ModalDireccion';
 
 const ConfirmacionCompra = ({ navigation }) => {
     const { carrito, vaciarCarrito, obtenerTotal } = useCarrito();
@@ -26,6 +28,13 @@ const ConfirmacionCompra = ({ navigation }) => {
     const [pagoExitoso, setPagoExitoso] = useState(false);
     const [metodoPagoExpandido, setMetodoPagoExpandido] = useState(null);
     const [pasoActual, setPasoActual] = useState(1);
+
+    // Estados para direcciones
+    const [direcciones, setDirecciones] = useState([]);
+    const [modalSelectorDireccion, setModalSelectorDireccion] = useState(false);
+    const [modalNuevaDireccion, setModalNuevaDireccion] = useState(false);
+    const [cargandoDireccion, setCargandoDireccion] = useState(false);
+    const [direccionSeleccionada, setDireccionSeleccionada] = useState(null);
 
     const [formData, setFormData] = useState({
         nombre_cliente: '',
@@ -106,11 +115,65 @@ const ConfirmacionCompra = ({ navigation }) => {
                         email: usuario.email || prev.email,
                         telefono: usuario.telefono || prev.telefono,
                     }));
+
+                    // Cargar direcciones del usuario
+                    cargarDirecciones(usuario.id);
                 }
             } catch (e) { }
         };
         cargarUsuario();
     }, []);
+
+    const cargarDirecciones = async (usuarioId) => {
+        try {
+            const response = await obtenerDirecciones(usuarioId);
+            const direccionesData = response.data || [];
+            setDirecciones(direccionesData);
+
+            // Auto-seleccionar dirección principal si existe
+            const principal = direccionesData.find(d => d.es_principal);
+            if (principal) {
+                seleccionarDireccion(principal);
+            }
+        } catch (error) {
+            console.error('Error al cargar direcciones:', error);
+        }
+    };
+
+    const seleccionarDireccion = (direccion) => {
+        setDireccionSeleccionada(direccion);
+        setFormData(prev => ({
+            ...prev,
+            direccion: direccion.direccion,
+            telefono: direccion.telefono || prev.telefono
+        }));
+        setModalSelectorDireccion(false);
+    };
+
+    const handleGuardarNuevaDireccion = async (formDireccion) => {
+        setCargandoDireccion(true);
+        try {
+            const dataDireccion = {
+                ...formDireccion,
+                usuarioId: usuarioActivo.id
+            };
+
+            const response = await crearDireccion(dataDireccion);
+            Alert.alert('Éxito', 'Dirección agregada correctamente');
+
+            setModalNuevaDireccion(false);
+            await cargarDirecciones(usuarioActivo.id);
+
+            // Seleccionar la nueva dirección
+            if (response.data) {
+                seleccionarDireccion(response.data);
+            }
+        } catch (error) {
+            Alert.alert('Error', error.message || 'No se pudo guardar la dirección');
+        } finally {
+            setCargandoDireccion(false);
+        }
+    };
 
     const validarFormulario = () => {
         if (!formData.nombre_cliente.trim()) {
@@ -595,20 +658,73 @@ const ConfirmacionCompra = ({ navigation }) => {
                                 <Text style={styles.seccionTitulo}>Dirección de entrega</Text>
                             </View>
 
-                            <View style={styles.inputContainer}>
-                                <View style={[styles.inputWrapper, styles.inputWrapperTextarea]}>
-                                    <Ionicons name="home-outline" size={18} color="#6B7280" style={styles.inputIconTop} />
-                                    <TextInput
-                                        style={[styles.input, styles.inputMultiline]}
-                                        placeholder="Calle, número, distrito, ciudad"
-                                        value={formData.direccion}
-                                        onChangeText={(text) => handleChange('direccion', text)}
-                                        multiline
-                                        numberOfLines={2}
-                                        placeholderTextColor="#9CA3AF"
-                                    />
+                            {usuarioActivo && direcciones.length > 0 && !direccionSeleccionada && (
+                                <TouchableOpacity
+                                    style={styles.botonSeleccionarDireccion}
+                                    onPress={() => setModalSelectorDireccion(true)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.botonDireccionContent}>
+                                        <Ionicons name="list-outline" size={18} color="#3B82F6" />
+                                        <Text style={styles.botonDireccionTexto}>
+                                            Seleccionar dirección guardada
+                                        </Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                                </TouchableOpacity>
+                            )}
+
+                            {direccionSeleccionada ? (
+                                <View style={styles.direccionSeleccionadaContainer}>
+                                    <View style={styles.direccionSeleccionadaCard}>
+                                        <View style={styles.direccionSeleccionadaHeader}>
+                                            <View style={styles.direccionBadge}>
+                                                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                                                <Text style={styles.direccionBadgeTexto}>{direccionSeleccionada.alias}</Text>
+                                            </View>
+                                            <TouchableOpacity
+                                                onPress={() => setModalSelectorDireccion(true)}
+                                                activeOpacity={0.7}
+                                                style={styles.botonCambiarDireccion}
+                                            >
+                                                <Text style={styles.textoCambiarDireccion}>Cambiar</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                        <Text style={styles.direccionSeleccionadaTexto}>{formData.direccion}</Text>
+                                        {direccionSeleccionada.referencia && String(direccionSeleccionada.referencia).trim() !== '' && (
+                                            <View style={styles.referenciaInfo}>
+                                                <Ionicons name="information-circle-outline" size={14} color="#6B7280" />
+                                                <Text style={styles.referenciaInfoTexto}>{String(direccionSeleccionada.referencia)}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.botonEditarDireccion}
+                                        onPress={() => {
+                                            setDireccionSeleccionada(null);
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons name="create-outline" size={16} color="#3B82F6" />
+                                        <Text style={styles.botonEditarDireccionTexto}>Editar manualmente</Text>
+                                    </TouchableOpacity>
                                 </View>
-                            </View>
+                            ) : (
+                                <View style={styles.inputContainer}>
+                                    <View style={[styles.inputWrapper, styles.inputWrapperTextarea]}>
+                                        <Ionicons name="home-outline" size={18} color="#6B7280" style={styles.inputIconTop} />
+                                        <TextInput
+                                            style={[styles.input, styles.inputMultiline]}
+                                            placeholder="Calle, número, distrito, ciudad"
+                                            value={formData.direccion}
+                                            onChangeText={(text) => handleChange('direccion', text)}
+                                            multiline
+                                            numberOfLines={2}
+                                            placeholderTextColor="#9CA3AF"
+                                        />
+                                    </View>
+                                </View>
+                            )}
                         </View>
 
                         {/* Métodos de pago - tarjetas horizontales */}
@@ -731,6 +847,25 @@ const ConfirmacionCompra = ({ navigation }) => {
             </View>
 
             {renderModalPago()}
+
+            <ModalSelectorDireccion
+                visible={modalSelectorDireccion}
+                direcciones={direcciones}
+                onSeleccionar={seleccionarDireccion}
+                onAgregarNueva={() => {
+                    setModalSelectorDireccion(false);
+                    setModalNuevaDireccion(true);
+                }}
+                onClose={() => setModalSelectorDireccion(false)}
+            />
+
+            <ModalDireccion
+                visible={modalNuevaDireccion}
+                direccion={null}
+                onClose={() => setModalNuevaDireccion(false)}
+                onGuardar={handleGuardarNuevaDireccion}
+                cargando={cargandoDireccion}
+            />
         </View>
     );
 };
@@ -888,6 +1023,107 @@ const styles = StyleSheet.create({
     loginLink: {
         color: '#3B82F6',
         fontWeight: '700',
+    },
+
+    // Botón seleccionar dirección
+    botonSeleccionarDireccion: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#EFF6FF',
+        padding: 12,
+        borderRadius: 10,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
+    },
+    botonDireccionContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
+    botonDireccionTexto: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#3B82F6',
+        flex: 1,
+    },
+    direccionSeleccionadaContainer: {
+        gap: 10,
+    },
+    direccionSeleccionadaCard: {
+        backgroundColor: '#F0FDF4',
+        padding: 14,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#BBF7D0',
+    },
+    direccionSeleccionadaHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    direccionBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#DCFCE7',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+    },
+    direccionBadgeTexto: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#166534',
+    },
+    botonCambiarDireccion: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 6,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+    },
+    textoCambiarDireccion: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#3B82F6',
+    },
+    direccionSeleccionadaTexto: {
+        fontSize: 14,
+        color: '#1A1A1A',
+        lineHeight: 20,
+        fontWeight: '500',
+    },
+    referenciaInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 6,
+    },
+    referenciaInfoTexto: {
+        fontSize: 12,
+        color: '#6B7280',
+        fontStyle: 'italic',
+    },
+    botonEditarDireccion: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    botonEditarDireccionTexto: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#3B82F6',
     },
 
     // Secciones más limpias

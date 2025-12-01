@@ -329,18 +329,30 @@ export const obtenerPedidosPorEmail = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email requerido' });
     }
 
+    // Obtener pedidos
     const [pedidos] = await pool.query(
-      `SELECT p.*, 
-              COUNT(dp.id) AS cantidad_productos,
-              GROUP_CONCAT(CONCAT(pr.nombre, ' (x', dp.cantidad, ')') SEPARATOR ', ') AS productos
-       FROM pedidos p
-       LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
-       LEFT JOIN productos pr ON dp.producto_id = pr.id
-       WHERE p.email = ?
-       GROUP BY p.id
-       ORDER BY p.fecha DESC`,
+      `SELECT * FROM pedidos WHERE email = ? ORDER BY fecha DESC`,
       [email]
     );
+
+    // Para cada pedido, obtener sus productos
+    for (let pedido of pedidos) {
+      const [productos] = await pool.query(
+        `SELECT 
+          pr.id,
+          pr.nombre,
+          pr.precio,
+          pr.imagen,
+          pr.categoria,
+          dp.cantidad,
+          dp.subtotal
+         FROM detalle_pedido dp
+         INNER JOIN productos pr ON dp.producto_id = pr.id
+         WHERE dp.pedido_id = ?`,
+        [pedido.id]
+      );
+      pedido.productos = productos;
+    }
 
     res.json({
       success: true,

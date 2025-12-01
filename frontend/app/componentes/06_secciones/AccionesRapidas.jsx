@@ -30,6 +30,14 @@ const AccionesRapidas = ({ navigation }) => {
             onPress: () => navigation.navigate('AgregarProducto')
         },
         {
+            id: 'clientes',
+            titulo: 'Clientes',
+            icono: 'people',
+            color: '#EC4899',
+            bgColor: '#FCE7F3',
+            onPress: () => navigation.navigate('GestionClientes')
+        },
+        {
             id: 'reportes',
             titulo: 'Reportes',
             icono: 'bar-chart',
@@ -74,7 +82,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#111827',
         marginBottom: 4,
-        letterSpacing:0.8
+        letterSpacing: 0.8
     },
     actionsGrid: {
         flexDirection: 'row',

@@ -6,7 +6,6 @@ import {
     ScrollView,
     TouchableOpacity,
     StyleSheet,
-    Alert,
     Dimensions,
     BackHandler,
     Platform,
@@ -15,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useCarrito } from '../../contexto/CarritoContext';
 import { useFavoritos } from '../../contexto/FavoritosContext';
+import ToastNotification from '../../componentes/06_secciones/ToastNotification';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +31,21 @@ const DetalleProducto = ({ route, navigation }) => {
     const cantidadEnCarrito = productoEnCarrito ? productoEnCarrito.cantidad : 0;
     const stockDisponible = producto.stock - cantidadEnCarrito;
 
+    // Estado para Toast
+    const [toast, setToast] = useState({
+        visible: false,
+        message: '',
+        type: 'success',
+    });
+
+    const showToast = (message, type = 'success') => {
+        setToast({ visible: true, message, type });
+    };
+
+    const hideToast = () => {
+        setToast({ ...toast, visible: false });
+    };
+
     useEffect(() => {
         const backHandler = BackHandler.addEventListener(
             'hardwareBackPress',
@@ -45,107 +60,46 @@ const DetalleProducto = ({ route, navigation }) => {
     const handleToggleFavorito = () => {
         if (estaEnFavoritos) {
             eliminarDeFavoritos(producto.id);
-            Alert.alert(
-                'Eliminado de favoritos',
-                `${producto.nombre} se eliminó de tus favoritos`,
-                [{ text: 'Entendido', style: 'cancel' }]
-            );
+            showToast('Eliminado de favoritos', 'info');
         } else {
             const agregado = agregarAFavoritos(producto);
             if (agregado) {
-                Alert.alert(
-                    '¡Agregado a favoritos!',
-                    `${producto.nombre} se agregó a tus favoritos`,
-                    [
-                        { text: 'Entendido', style: 'cancel' },
-                        {
-                            text: 'Ver favoritos',
-                            onPress: () => navigation.navigate('Favoritos'),
-                            style: 'default'
-                        }
-                    ]
-                );
+                showToast('¡Agregado a favoritos!', 'success');
             }
         }
     };
 
     const handleAgregarCarrito = () => {
         if (sinStock) {
-            Alert.alert(
-                'Sin stock',
-                'Este producto no está disponible actualmente',
-                [{ text: 'Entendido', style: 'cancel' }]
-            );
+            showToast('Este producto no está disponible', 'error');
             return;
         }
 
         if (cantidadEnCarrito >= producto.stock) {
-            Alert.alert(
-                'Límite alcanzado',
-                `Ya tienes ${cantidadEnCarrito} ${cantidadEnCarrito === 1 ? 'unidad' : 'unidades'} de este producto en tu carrito. No hay más stock disponible.`,
-                [
-                    { text: 'Entendido', style: 'cancel' },
-                    {
-                        text: 'Ver carrito',
-                        onPress: () => navigation.navigate('Carrito'),
-                        style: 'default'
-                    }
-                ]
-            );
+            showToast('Ya tienes el máximo disponible en tu carrito', 'warning');
             return;
         }
 
-        if (cantidadEnCarrito > 0 && stockDisponible <= 2) {
-            Alert.alert(
-                'Agregar al carrito',
-                `Ya tienes ${cantidadEnCarrito} ${cantidadEnCarrito === 1 ? 'unidad' : 'unidades'} en tu carrito. Solo ${stockDisponible === 1 ? 'queda' : 'quedan'} ${stockDisponible} más ${stockDisponible === 1 ? 'disponible' : 'disponibles'}. ¿Deseas agregar otra unidad?`,
-                [
-                    { text: 'Cancelar', style: 'cancel' },
-                    {
-                        text: 'Sí, agregar',
-                        onPress: () => {
-                            agregarAlCarrito(producto);
-                            Alert.alert(
-                                '¡Agregado!',
-                                `Ahora tienes ${cantidadEnCarrito + 1} ${cantidadEnCarrito + 1 === 1 ? 'unidad' : 'unidades'} de ${producto.nombre}`,
-                                [
-                                    { text: 'Seguir comprando', style: 'cancel', onPress: () => navigation.goBack() },
-                                    {
-                                        text: 'Ver carrito',
-                                        onPress: () => navigation.navigate('Carrito'),
-                                        style: 'default'
-                                    }
-                                ]
-                            );
-                        }
-                    }
-                ]
-            );
+        // Si ya está en el carrito, navegar al carrito
+        if (cantidadEnCarrito > 0) {
+            navigation.navigate('Carrito');
             return;
         }
 
         agregarAlCarrito(producto);
-        const nuevaCantidad = cantidadEnCarrito + 1;
-        const mensajeAdicional = cantidadEnCarrito > 0
-            ? `\n\nAhora tienes ${nuevaCantidad} ${nuevaCantidad === 1 ? 'unidad' : 'unidades'} en tu carrito.`
-            : '';
-
-        Alert.alert(
-            '¡Agregado al carrito!',
-            `${producto.nombre} se agregó exitosamente${mensajeAdicional}`,
-            [
-                { text: 'Seguir comprando', style: 'cancel', onPress: () => navigation.goBack() },
-                {
-                    text: 'Ver carrito',
-                    onPress: () => navigation.navigate('Carrito'),
-                    style: 'default'
-                }
-            ]
-        );
+        showToast('¡Agregado al carrito!', 'success');
     };
 
     return (
         <View style={styles.container}>
+            {/* Toast Notification */}
+            <ToastNotification
+                visible={toast.visible}
+                message={toast.message}
+                type={toast.type}
+                onHide={hideToast}
+            />
+
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 bounces={true}
@@ -353,7 +307,9 @@ const DetalleProducto = ({ route, navigation }) => {
                     <TouchableOpacity
                         style={[
                             styles.botonAgregar,
-                            (sinStock || cantidadEnCarrito >= producto.stock) && styles.botonDeshabilitado
+                            sinStock && styles.botonDeshabilitado,
+                            cantidadEnCarrito > 0 && cantidadEnCarrito < producto.stock && styles.botonEnCarrito,
+                            cantidadEnCarrito >= producto.stock && styles.botonMaximo
                         ]}
                         onPress={handleAgregarCarrito}
                         disabled={sinStock || cantidadEnCarrito >= producto.stock}
@@ -361,7 +317,12 @@ const DetalleProducto = ({ route, navigation }) => {
                     >
                         <View style={styles.botonContent}>
                             <Ionicons
-                                name={sinStock || cantidadEnCarrito >= producto.stock ? "lock-closed" : "cart-outline"}
+                                name={
+                                    sinStock ? "lock-closed" :
+                                        cantidadEnCarrito >= producto.stock ? "lock-closed" :
+                                            cantidadEnCarrito > 0 ? "checkmark-circle" :
+                                                "cart-outline"
+                                }
                                 size={20}
                                 color="#FFF"
                             />
@@ -370,10 +331,14 @@ const DetalleProducto = ({ route, navigation }) => {
                                     ? 'No disponible'
                                     : cantidadEnCarrito >= producto.stock
                                         ? 'Stock máximo alcanzado'
-                                        : 'Agregar al carrito'}
+                                        : cantidadEnCarrito > 0
+                                            ? 'Ver en carrito'
+                                            : 'Agregar al carrito'}
                             </Text>
                         </View>
-                        {!(sinStock || cantidadEnCarrito >= producto.stock) && (
+                        {cantidadEnCarrito > 0 && cantidadEnCarrito < producto.stock ? (
+                            <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                        ) : !(sinStock || cantidadEnCarrito >= producto.stock) && (
                             <Text style={styles.precioBoton}>
                                 S/ {parseFloat(producto.precio).toFixed(2)}
                             </Text>
@@ -725,6 +690,15 @@ const styles = StyleSheet.create({
         elevation: 6,
     },
     botonDeshabilitado: {
+        backgroundColor: '#D1D5DB',
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+    },
+    botonEnCarrito: {
+        backgroundColor: '#10B981',
+        shadowColor: '#10B981',
+    },
+    botonMaximo: {
         backgroundColor: '#D1D5DB',
         shadowColor: '#000',
         shadowOpacity: 0.1,

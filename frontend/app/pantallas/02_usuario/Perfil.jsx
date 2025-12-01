@@ -12,7 +12,16 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { login, registro, obtenerPedidosPorEmail } from '../../servicios/api';
+import {
+    login,
+    registro,
+    obtenerPedidosPorEmail,
+    obtenerDirecciones,
+    crearDireccion,
+    actualizarDireccion,
+    eliminarDireccion,
+    establecerDireccionPrincipal
+} from '../../servicios/api';
 import FormularioLogin from '../../componentes/04_formularios/FormularioLogin';
 import FormularioRegistro from '../../componentes/04_formularios/FormularioRegistro';
 import ModalLoginAdmin from '../../componentes/05_modales/ModalLoginAdmin';
@@ -20,6 +29,8 @@ import TarjetaPerfil from '../../componentes/02_tarjetas/TarjetaPerfil';
 import ListaPedidos from '../../componentes/03_listas/ListaPedidos';
 import ModalDetallePedido from '../../componentes/05_modales/ModalDetallePedido';
 import OpcionesPerfil from '../../componentes/06_secciones/OpcionesPerfil';
+import SeccionDirecciones from '../../componentes/06_secciones/SeccionDirecciones';
+import ModalDireccion from '../../componentes/05_modales/ModalDireccion';
 
 const Perfil = ({ navigation }) => {
     // Estados principales
@@ -36,6 +47,12 @@ const Perfil = ({ navigation }) => {
 
     // Estado para expandir/colapsar pedidos
     const [pedidosExpandido, setPedidosExpandido] = useState(false);
+
+    // Estados para direcciones
+    const [direcciones, setDirecciones] = useState([]);
+    const [modalDireccionVisible, setModalDireccionVisible] = useState(false);
+    const [direccionEditar, setDireccionEditar] = useState(null);
+    const [cargandoDireccion, setCargandoDireccion] = useState(false);
 
     // Manejo del botón back
     useEffect(() => {
@@ -71,6 +88,7 @@ const Perfil = ({ navigation }) => {
                 const rolLower = usuarioGuardado.rol?.toLowerCase() || '';
                 if (rolLower === 'cliente' || !rolLower) {
                     cargarPedidosUsuario(usuarioGuardado.email);
+                    cargarDirecciones(usuarioGuardado.id);
                 }
             }
         } catch (e) { }
@@ -83,6 +101,15 @@ const Perfil = ({ navigation }) => {
             setPedidos(pedidosData);
         } catch (error) {
             console.error('Error al cargar pedidos:', error);
+        }
+    };
+
+    const cargarDirecciones = async (usuarioId) => {
+        try {
+            const response = await obtenerDirecciones(usuarioId);
+            setDirecciones(response.data || []);
+        } catch (error) {
+            console.error('Error al cargar direcciones:', error);
         }
     };
 
@@ -117,11 +144,11 @@ const Perfil = ({ navigation }) => {
 
             setModalAdminVisible(false);
 
-            Alert.alert(
-                'Bienvenido Admin',
-                `Accediendo al panel de administración...`,
-                [{ text: 'Continuar', onPress: () => navigation.reset('Admin') }]
-            );
+            // Alert.alert(
+            //     'Bienvenido Admin',
+            //     `Accediendo al panel de administración...`,
+            //     [{ text: 'Continuar', onPress: () => navigation.reset('Admin') }]
+            // );
         } catch (error) {
             Alert.alert('Error de autenticación', error.message || 'Credenciales incorrectas');
         } finally {
@@ -160,9 +187,10 @@ const Perfil = ({ navigation }) => {
             await AsyncStorage.setItem('usuario', JSON.stringify(usuario));
             setUsuarioActivo(usuario);
 
-            Alert.alert('¡Bienvenido!', `Hola ${usuario.nombre}!`);
+            // Alert.alert('¡Bienvenido!', `Hola ${usuario.nombre}!`);
             setVistaActual('inicio');
             cargarPedidosUsuario(usuario.email);
+            cargarDirecciones(usuario.id);
         } catch (error) {
             Alert.alert('Error', error.message || 'Email o contraseña incorrectos');
         } finally {
@@ -200,6 +228,7 @@ const Perfil = ({ navigation }) => {
 
             Alert.alert('¡Registro exitoso!', `¡Bienvenido ${usuario.nombre}!`);
             setVistaActual('inicio');
+            cargarDirecciones(usuario.id);
         } catch (error) {
             Alert.alert('Error', error.message || 'No se pudo completar el registro');
         } finally {
@@ -208,25 +237,86 @@ const Perfil = ({ navigation }) => {
     };
 
     // Cerrar sesión
-    const handleCerrarSesion = () => {
+    const handleCerrarSesion = async () => {
+        try {
+            setUsuarioActivo(null);
+            setPedidos([]);
+            setDirecciones([]);
+            await AsyncStorage.removeItem('usuario');
+            await AsyncStorage.removeItem('token');
+            // Alert.alert('Sesión cerrada', 'Hasta pronto!');
+        } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+        }
+    };
+
+    // Gestión de direcciones
+    const handleAgregarDireccion = () => {
+        setDireccionEditar(null);
+        setModalDireccionVisible(true);
+    };
+
+    const handleEditarDireccion = (direccion) => {
+        setDireccionEditar(direccion);
+        setModalDireccionVisible(true);
+    };
+
+    const handleGuardarDireccion = async (formDireccion) => {
+        setCargandoDireccion(true);
+        try {
+            const dataDireccion = {
+                ...formDireccion,
+                usuarioId: usuarioActivo.id
+            };
+
+            if (direccionEditar) {
+                await actualizarDireccion(direccionEditar.id, formDireccion);
+                Alert.alert('Éxito', 'Dirección actualizada correctamente');
+            } else {
+                await crearDireccion(dataDireccion);
+                Alert.alert('Éxito', 'Dirección agregada correctamente');
+            }
+
+            setModalDireccionVisible(false);
+            cargarDirecciones(usuarioActivo.id);
+        } catch (error) {
+            Alert.alert('Error', error.message || 'No se pudo guardar la dirección');
+        } finally {
+            setCargandoDireccion(false);
+        }
+    };
+
+    const handleEliminarDireccion = (id) => {
         Alert.alert(
-            'Cerrar sesión',
-            '¿Estás seguro de cerrar sesión?',
+            'Eliminar dirección',
+            '¿Estás seguro de eliminar esta dirección?',
             [
                 { text: 'Cancelar', style: 'cancel' },
                 {
-                    text: 'Cerrar sesión',
+                    text: 'Eliminar',
                     style: 'destructive',
-                    onPress: () => {
-                        setUsuarioActivo(null);
-                        setPedidos([]);
-                        AsyncStorage.removeItem('usuario');
-                        AsyncStorage.removeItem('token');
-                        Alert.alert('Sesión cerrada', 'Hasta pronto!');
+                    onPress: async () => {
+                        try {
+                            await eliminarDireccion(id);
+                            Alert.alert('Éxito', 'Dirección eliminada');
+                            cargarDirecciones(usuarioActivo.id);
+                        } catch (error) {
+                            Alert.alert('Error', error.message || 'No se pudo eliminar la dirección');
+                        }
                     }
                 }
             ]
         );
+    };
+
+    const handleEstablecerPrincipal = async (id) => {
+        try {
+            await establecerDireccionPrincipal(id);
+            Alert.alert('Éxito', 'Dirección principal actualizada');
+            cargarDirecciones(usuarioActivo.id);
+        } catch (error) {
+            Alert.alert('Error', error.message || 'No se pudo actualizar la dirección principal');
+        }
     };
 
     // Ver detalle de pedido
@@ -440,6 +530,14 @@ const Perfil = ({ navigation }) => {
                 <View style={styles.contenido}>
                     <TarjetaPerfil usuario={usuarioActivo} />
 
+                    <SeccionDirecciones
+                        direcciones={direcciones}
+                        onAgregar={handleAgregarDireccion}
+                        onEditar={handleEditarDireccion}
+                        onEliminar={handleEliminarDireccion}
+                        onEstablecerPrincipal={handleEstablecerPrincipal}
+                    />
+
                     <ListaPedidos
                         pedidos={pedidos}
                         expandido={pedidosExpandido}
@@ -462,6 +560,14 @@ const Perfil = ({ navigation }) => {
                 onClose={() => setModalDetalleVisible(false)}
                 getEstadoColor={getEstadoColor}
                 getEstadoIcono={getEstadoIcono}
+            />
+
+            <ModalDireccion
+                visible={modalDireccionVisible}
+                direccion={direccionEditar}
+                onClose={() => setModalDireccionVisible(false)}
+                onGuardar={handleGuardarDireccion}
+                cargando={cargandoDireccion}
             />
         </View>
     );

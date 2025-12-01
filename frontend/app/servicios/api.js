@@ -107,6 +107,27 @@ export const obtenerPedidosPorEmail = async (email) => {
   return api.get(`/usuarios/pedidos/${email}`);
 };
 
+// Direcciones
+export const obtenerDirecciones = async (usuarioId) => {
+  return api.get(`/direcciones/usuario/${usuarioId}`);
+};
+
+export const crearDireccion = async (data) => {
+  return api.post('/direcciones', data);
+};
+
+export const actualizarDireccion = async (id, data) => {
+  return api.put(`/direcciones/${id}`, data);
+};
+
+export const eliminarDireccion = async (id) => {
+  return api.delete(`/direcciones/${id}`);
+};
+
+export const establecerDireccionPrincipal = async (id) => {
+  return api.patch(`/direcciones/${id}/principal`);
+};
+
 // Usuarios
 export const registrarUsuario = async (data) => {
   return api.post('/usuarios/registro', data);
@@ -114,6 +135,10 @@ export const registrarUsuario = async (data) => {
 
 export const loginUsuario = async (data) => {
   return api.post('/usuarios/login', data);
+};
+
+export const obtenerUsuarios = async () => {
+  return api.get('/usuarios');
 };
 
 // Subir imagen

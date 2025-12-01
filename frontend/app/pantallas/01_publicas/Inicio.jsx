@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -20,6 +20,11 @@ import { useFavoritos } from '../../contexto/FavoritosContext';
 import ModalFiltros from '../../componentes/05_modales/ModalFiltros';
 
 const { width } = Dimensions.get('window');
+
+// Variable global para mantener el estado de carga entre montajes
+let productosCache = null;
+let categoriasCache = null;
+let datosYaCargados = false;
 
 // Mapeo de categorías a iconos actualizado
 const ICONOS_CATEGORIAS = {
@@ -60,7 +65,18 @@ const Inicio = ({ navigation }) => {
     const cantidadFavoritos = favoritos.length;
 
     useEffect(() => {
-        cargarDatos();
+        // Si ya hay datos en caché, usarlos inmediatamente
+        if (datosYaCargados && productosCache && categoriasCache) {
+            console.log('📦 Usando productos desde caché');
+            setProductos(productosCache);
+            setProductosOriginales(productosCache);
+            setCategorias(categoriasCache);
+            setCargando(false);
+        } else {
+            // Solo cargar desde la API si no hay caché
+            console.log('🌐 Cargando productos desde API');
+            cargarDatos();
+        }
     }, []);
 
     // Función helper para normalizar la respuesta de la API
@@ -110,6 +126,9 @@ const Inicio = ({ navigation }) => {
             setProductos(productosMezclados);
             setProductosOriginales(productosMezclados);
 
+            // Guardar en caché global
+            productosCache = productosMezclados;
+
             // Cargar categorías desde la API (solo las que existen en productos)
             const resCategorias = await obtenerCategorias();
             const categoriasNormalizadas = normalizarRespuesta(resCategorias);
@@ -124,6 +143,10 @@ const Inicio = ({ navigation }) => {
 
             console.log('🏷️ Categorías disponibles:', categoriasFormateadas);
             setCategorias(categoriasFormateadas);
+
+            // Guardar en caché global
+            categoriasCache = categoriasFormateadas;
+            datosYaCargados = true;
 
         } catch (error) {
             console.error('❌ Error al cargar datos:', error);

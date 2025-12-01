@@ -5,6 +5,7 @@ import EncabezadoAdmin from '../../componentes/01_basicos/EncabezadoAdmin';
 import FiltrosPedidos from '../../componentes/06_secciones/FiltrosPedidos';
 import TarjetaPedidoAdmin from '../../componentes/02_tarjetas/TarjetaPedidoAdmin';
 import ModalCambiarEstado from '../../componentes/05_modales/ModalCambiarEstado';
+import ModalProductosPedido from '../../componentes/05_modales/ModalProductosPedido';
 import EstadoVacioPedidos from '../../componentes/03_listas/EstadoVacioPedidos';
 
 const GestionPedidos = ({ navigation, route = {} }) => {
@@ -15,6 +16,10 @@ const GestionPedidos = ({ navigation, route = {} }) => {
     // Estados para el modal de cambio de estado
     const [modalEstadoVisible, setModalEstadoVisible] = useState(false);
     const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+
+    // Estados para el modal de detalle de pedido
+    const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
+    const [pedidoDetalle, setPedidoDetalle] = useState(null);
 
     // Estados y refs para scroll automático
     const scrollViewRef = useRef(null);
@@ -99,6 +104,16 @@ const GestionPedidos = ({ navigation, route = {} }) => {
     const cerrarModalEstado = () => {
         setModalEstadoVisible(false);
         setPedidoSeleccionado(null);
+    };
+
+    const abrirModalDetalle = (pedido) => {
+        setPedidoDetalle(pedido);
+        setModalDetalleVisible(true);
+    };
+
+    const cerrarModalDetalle = () => {
+        setModalDetalleVisible(false);
+        setPedidoDetalle(null);
     };
 
     const confirmarCambioEstado = (nuevoEstado) => {
@@ -193,6 +208,7 @@ const GestionPedidos = ({ navigation, route = {} }) => {
                             esUltimo={index === pedidosFiltrados.length - 1}
                             getEstadoConfig={getEstadoConfig}
                             abrirModalEstado={abrirModalEstado}
+                            onVerDetalle={abrirModalDetalle}
                             pedidoRef={(ref) => (pedidoRefs.current[pedido.id] = ref)}
                         />
                     ))
@@ -200,13 +216,19 @@ const GestionPedidos = ({ navigation, route = {} }) => {
                 <View style={{ height: 20 }} />
             </ScrollView>
 
-            {/* Modal */}
+            {/* Modales */}
             <ModalCambiarEstado
                 visible={modalEstadoVisible}
                 pedidoSeleccionado={pedidoSeleccionado}
                 getEstadoConfig={getEstadoConfig}
                 onClose={cerrarModalEstado}
                 onConfirmar={confirmarCambioEstado}
+            />
+
+            <ModalProductosPedido
+                visible={modalDetalleVisible}
+                pedido={pedidoDetalle}
+                onClose={cerrarModalDetalle}
             />
         </View>
     );

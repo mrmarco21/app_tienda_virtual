@@ -12,6 +12,7 @@ import GestionProductos from './pantallas/03_admin/GestionProductos';
 import FormularioProducto from './pantallas/03_admin/FormularioProducto';
 import PanelAdmin from './pantallas/03_admin/PanelAdmin';
 import GestionPedidos from './pantallas/03_admin/GestionPedidos';
+import GestionClientes from './pantallas/03_admin/GestionClientes';
 import Reportes from './pantallas/03_admin/Reportes';
 import { Ionicons } from '@expo/vector-icons';
 import { useCarrito } from './contexto/CarritoContext';
@@ -149,6 +150,8 @@ const NavegacionInterior = () => {
                 return <GestionProductos navigation={navigation} />;
             case 'GestionPedidos':
                 return <GestionPedidos navigation={navigation} route={route} />;
+            case 'GestionClientes':
+                return <GestionClientes navigation={navigation} />;
             case 'AgregarProducto':
                 return <FormularioProducto navigation={navigation} route={route} />;
             case 'EditarProducto':
@@ -169,7 +172,7 @@ const NavegacionInterior = () => {
 
 
     // Determinar si estamos en una pantalla de admin
-    const isAdminScreen = ['Admin', 'GestionProductos', 'GestionPedidos', 'AgregarProducto', 'EditarProducto', 'Reportes'].includes(pantallaActual);
+    const isAdminScreen = ['Admin', 'GestionProductos', 'GestionPedidos', 'GestionClientes', 'AgregarProducto', 'EditarProducto', 'Reportes'].includes(pantallaActual);
 
 
     // Mostrar pantalla de carga mientras se verifica el usuario
@@ -303,7 +306,7 @@ const styles = StyleSheet.create({
         width: 46,
         height: 46,
         borderRadius: 25,
-        backgroundColor: '#8abaf5ad',
+        backgroundColor: '#cacacaff',
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#60A5FA',

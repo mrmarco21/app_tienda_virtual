@@ -7,6 +7,7 @@ const TarjetaPedidoAdmin = ({
     esUltimo,
     getEstadoConfig,
     abrirModalEstado,
+    onVerDetalle,
     pedidoRef
 }) => {
     const estadoConfig = getEstadoConfig(pedido.estado);
@@ -59,6 +60,17 @@ const TarjetaPedidoAdmin = ({
                 <View style={styles.sectionHeader}>
                     <Ionicons name="person" size={16} color="#3B82F6" />
                     <Text style={styles.sectionTitle}>Información del Cliente</Text>
+                    {pedido.usuario_id ? (
+                        <View style={styles.badgeRegistrado}>
+                            <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                            <Text style={styles.badgeRegistradoTexto}>Registrado</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.badgeInvitado}>
+                            <Ionicons name="person-outline" size={12} color="#F59E0B" />
+                            <Text style={styles.badgeInvitadoTexto}>Invitado</Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.infoGrid}>
@@ -136,6 +148,17 @@ const TarjetaPedidoAdmin = ({
                         </Text>
                     </View>
                 </View>
+
+                <TouchableOpacity
+                    style={styles.botonVerProductos}
+                    onPress={() => onVerDetalle(pedido)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="cube-outline" size={18} color="#3B82F6" />
+                    <Text style={styles.botonVerProductosTexto}>Ver productos del pedido</Text>
+                    <Ionicons name="chevron-forward" size={18} color="#3B82F6" />
+                </TouchableOpacity>
+
                 <View style={styles.totalCard}>
                     <Text style={styles.totalLabel}>Total del Pedido</Text>
                     <Text style={styles.totalValor}>
@@ -227,6 +250,35 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
         color: '#1A1A1A',
+        flex: 1,
+    },
+    badgeRegistrado: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#D1FAE5',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    badgeRegistradoTexto: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#059669',
+    },
+    badgeInvitado: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#FEF3C7',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    badgeInvitadoTexto: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#D97706',
     },
     infoGrid: {
         gap: 12,
@@ -306,6 +358,25 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#1A1A1A',
         fontWeight: '600',
+    },
+    botonVerProductos: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#EFF6FF',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
+    },
+    botonVerProductosTexto: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#3B82F6',
+        flex: 1,
     },
     totalCard: {
         backgroundColor: '#ECFDF5',

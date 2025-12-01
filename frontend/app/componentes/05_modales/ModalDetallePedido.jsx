@@ -1,12 +1,12 @@
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const ModalDetallePedido = ({ 
-    visible, 
-    pedido, 
-    onClose, 
-    getEstadoColor, 
-    getEstadoIcono 
+const ModalDetallePedido = ({
+    visible,
+    pedido,
+    onClose,
+    getEstadoColor,
+    getEstadoIcono
 }) => {
     if (!pedido) return null;
 
@@ -19,7 +19,7 @@ const ModalDetallePedido = ({
         >
             <View style={styles.modalDetalleOverlay}>
                 <View style={styles.modalDetalleContent}>
-                    {/* Header del modal más compacto */}
+                    {/* Header del modal */}
                     <View style={styles.modalDetalleHeader}>
                         <View style={styles.modalHeaderTop}>
                             <View style={styles.handleBar} />
@@ -40,16 +40,16 @@ const ModalDetallePedido = ({
                                     </Text>
                                 </View>
                             </View>
-                            <TouchableOpacity
+                            {/* <TouchableOpacity
                                 style={styles.modalCloseButton}
                                 onPress={onClose}
                                 activeOpacity={0.7}
                             >
                                 <Ionicons name="close" size={22} color="#6B7280" />
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                         </View>
 
-                        {/* Estado del pedido destacado en header */}
+                        {/* Estado del pedido */}
                         <View style={[
                             styles.estadoBadgeGrande,
                             { backgroundColor: getEstadoColor(pedido.estado) }
@@ -65,16 +65,16 @@ const ModalDetallePedido = ({
                         </View>
                     </View>
 
-                    <ScrollView 
+                    <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.modalScrollContent}
                     >
-                        {/* Grid de 2 columnas para información compacta */}
+
+                        {/* Detalles del cliente */}
                         <View style={styles.modalSeccion}>
                             <Text style={styles.modalSeccionTitulo}>Detalles del cliente</Text>
-                            
+
                             <View style={styles.infoGrid}>
-                                {/* Nombre */}
                                 <View style={styles.infoCard}>
                                     <View style={styles.infoCardHeader}>
                                         <View style={styles.infoIconContainer}>
@@ -87,7 +87,6 @@ const ModalDetallePedido = ({
                                     </Text>
                                 </View>
 
-                                {/* Teléfono */}
                                 <View style={styles.infoCard}>
                                     <View style={styles.infoCardHeader}>
                                         <View style={styles.infoIconContainer}>
@@ -101,7 +100,6 @@ const ModalDetallePedido = ({
                                 </View>
                             </View>
 
-                            {/* Email en ancho completo */}
                             <View style={styles.infoCardFull}>
                                 <View style={styles.infoCardHeader}>
                                     <View style={styles.infoIconContainer}>
@@ -115,10 +113,10 @@ const ModalDetallePedido = ({
                             </View>
                         </View>
 
-                        {/* Dirección con estilo de tarjeta */}
+                        {/* Dirección */}
                         <View style={styles.modalSeccion}>
                             <Text style={styles.modalSeccionTitulo}>Entrega</Text>
-                            
+
                             <View style={styles.direccionCard}>
                                 <View style={styles.direccionIconWrapper}>
                                     <Ionicons name="location" size={24} color="#3B82F6" />
@@ -132,16 +130,16 @@ const ModalDetallePedido = ({
                             </View>
                         </View>
 
-                        {/* Información de pago compacta */}
+                        {/* Información de pago */}
                         <View style={styles.modalSeccion}>
                             <Text style={styles.modalSeccionTitulo}>Pago</Text>
-                            
+
                             <View style={styles.pagoCard}>
                                 <View style={styles.pagoIconWrapper}>
-                                    <Ionicons 
-                                        name={pedido.metodo_pago === 'Yape' ? 'phone-portrait' : 'card'} 
-                                        size={22} 
-                                        color="#3B82F6" 
+                                    <Ionicons
+                                        name={pedido.metodo_pago === 'Yape' ? 'phone-portrait' : 'card'}
+                                        size={22}
+                                        color="#3B82F6"
                                     />
                                 </View>
                                 <View style={styles.pagoInfo}>
@@ -154,11 +152,85 @@ const ModalDetallePedido = ({
                                 </View>
                             </View>
                         </View>
+                        {/* NUEVA SECCIÓN: Productos del pedido */}
+                        <View style={styles.modalSeccion}>
+                            <View style={styles.seccionHeaderConContador}>
+                                <Text style={styles.modalSeccionTitulo}>Productos</Text>
+                                <View style={styles.contadorProductos}>
+                                    <Ionicons name="cube-outline" size={14} color="#3B82F6" />
+                                    <Text style={styles.contadorProductosTexto}>
+                                        {pedido.productos?.length || 0} items
+                                    </Text>
+                                </View>
+                            </View>
 
-                        {/* Resumen financiero con diseño más visual */}
+                            <View style={styles.productosLista}>
+                                {Array.isArray(pedido.productos) && pedido.productos.length > 0 ? (
+                                    pedido.productos.map((producto, index) => (
+                                        <View key={index} style={styles.productoItem}>
+                                            {/* Imagen del producto */}
+                                            <View style={styles.productoImageContainer}>
+                                                <Image
+                                                    source={{
+                                                        uri: producto.imagen || 'https://via.placeholder.com/80/f0f0f0/999999?text=Producto'
+                                                    }}
+                                                    style={styles.productoImagen}
+                                                    resizeMode="cover"
+                                                />
+                                                {/* Badge de cantidad */}
+                                                <View style={styles.cantidadBadge}>
+                                                    <Text style={styles.cantidadBadgeTexto}>x{producto.cantidad}</Text>
+                                                </View>
+                                            </View>
+
+                                            {/* Info del producto */}
+                                            <View style={styles.productoInfo}>
+                                                <Text style={styles.productoNombre} numberOfLines={2}>
+                                                    {producto.nombre}
+                                                </Text>
+
+                                                {producto.categoria && (
+                                                    <View style={styles.productoCategoriaTag}>
+                                                        <Ionicons name="pricetag-outline" size={10} color="#6B7280" />
+                                                        <Text style={styles.productoCategoriaTexto}>
+                                                            {producto.categoria}
+                                                        </Text>
+                                                    </View>
+                                                )}
+
+                                                {/* Precio unitario y subtotal */}
+                                                <View style={styles.productoPreciosContainer}>
+                                                    <View style={styles.precioUnitario}>
+                                                        <Text style={styles.precioUnitarioLabel}>Precio unit.</Text>
+                                                        <Text style={styles.precioUnitarioValor}>
+                                                            S/ {parseFloat(producto.precio).toFixed(2)}
+                                                        </Text>
+                                                    </View>
+                                                    <View style={styles.subtotalProducto}>
+                                                        <Text style={styles.subtotalProductoLabel}>Subtotal</Text>
+                                                        <Text style={styles.subtotalProductoValor}>
+                                                            S/ {(parseFloat(producto.precio) * producto.cantidad).toFixed(2)}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))
+                                ) : (
+                                    <View style={styles.sinProductosContainer}>
+                                        <Ionicons name="cube-outline" size={32} color="#D1D5DB" />
+                                        <Text style={styles.sinProductosTexto}>
+                                            No hay productos en este pedido
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+
+                        {/* Resumen financiero */}
                         <View style={styles.modalSeccionResumen}>
-                            <Text style={styles.modalSeccionTitulo}>Resumen de compra</Text>
-                            
+                            {/* <Text style={styles.modalSeccionTitulo}>Resumen de compra</Text> */}
+
                             <View style={styles.resumenCardModern}>
                                 <View style={styles.resumenRow}>
                                     <Text style={styles.resumenLabel}>Subtotal</Text>
@@ -197,7 +269,7 @@ const ModalDetallePedido = ({
                             </View>
                         </View>
 
-                        {/* Ayuda o soporte */}
+                        {/* Ayuda */}
                         <View style={styles.soporteSection}>
                             <View style={styles.soporteCard}>
                                 <Ionicons name="help-circle-outline" size={20} color="#6B7280" />
@@ -209,7 +281,7 @@ const ModalDetallePedido = ({
                         </View>
                     </ScrollView>
 
-                    {/* Footer con botón mejorado */}
+                    {/* Footer */}
                     <View style={styles.modalDetalleFooter}>
                         <TouchableOpacity
                             style={styles.botonCerrarModal}
@@ -243,8 +315,6 @@ const styles = StyleSheet.create({
         shadowRadius: 16,
         elevation: 12,
     },
-
-    // Header renovado
     modalDetalleHeader: {
         paddingTop: 8,
         paddingHorizontal: 20,
@@ -320,12 +390,149 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         textTransform: 'capitalize',
     },
-
     modalScrollContent: {
         paddingBottom: 16,
     },
 
-    // Secciones mejoradas
+    // NUEVOS ESTILOS PARA PRODUCTOS
+    seccionHeaderConContador: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 14,
+    },
+    contadorProductos: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 20,
+        gap: 5,
+    },
+    contadorProductosTexto: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#3B82F6',
+    },
+    productosLista: {
+        gap: 12,
+    },
+    productoItem: {
+        flexDirection: 'row',
+        backgroundColor: '#FAFAFA',
+        borderRadius: 12,
+        padding: 12,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    productoImageContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    productoImagen: {
+        width: '100%',
+        height: '100%',
+    },
+    cantidadBadge: {
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    cantidadBadgeTexto: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    productoInfo: {
+        flex: 1,
+        justifyContent: 'space-between',
+    },
+    productoNombre: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#1A1A1A',
+        lineHeight: 18,
+        marginBottom: 4,
+    },
+    productoCategoriaTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+        gap: 4,
+        marginBottom: 6,
+    },
+    productoCategoriaTexto: {
+        fontSize: 10,
+        color: '#6B7280',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+    },
+    productoPreciosContainer: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    precioUnitario: {
+        flex: 1,
+    },
+    precioUnitarioLabel: {
+        fontSize: 9,
+        color: '#9CA3AF',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        marginBottom: 2,
+    },
+    precioUnitarioValor: {
+        fontSize: 12,
+        color: '#6B7280',
+        fontWeight: '600',
+    },
+    subtotalProducto: {
+        flex: 1,
+        alignItems: 'flex-end',
+    },
+    subtotalProductoLabel: {
+        fontSize: 9,
+        color: '#9CA3AF',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        marginBottom: 2,
+    },
+    subtotalProductoValor: {
+        fontSize: 15,
+        color: '#3B82F6',
+        fontWeight: '700',
+    },
+    sinProductosContainer: {
+        alignItems: 'center',
+        paddingVertical: 32,
+        gap: 8,
+    },
+    sinProductosTexto: {
+        fontSize: 13,
+        color: '#9CA3AF',
+        fontWeight: '500',
+    },
+
+    // Resto de estilos existentes
     modalSeccion: {
         paddingHorizontal: 20,
         paddingTop: 20,
@@ -342,11 +549,8 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
         color: '#1A1A1A',
-        marginBottom: 14,
         letterSpacing: -0.2,
     },
-
-    // Grid de información
     infoGrid: {
         flexDirection: 'row',
         gap: 12,
@@ -396,8 +600,6 @@ const styles = StyleSheet.create({
     emailValue: {
         fontSize: 12,
     },
-
-    // Tarjeta de dirección mejorada
     direccionCard: {
         flexDirection: 'row',
         backgroundColor: '#F9FAFB',
@@ -432,8 +634,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         lineHeight: 18,
     },
-
-    // Tarjeta de pago mejorada
     pagoCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -482,8 +682,6 @@ const styles = StyleSheet.create({
         color: '#065F46',
         fontWeight: '700',
     },
-
-    // Resumen modernizado
     resumenCardModern: {
         backgroundColor: '#F9FAFB',
         padding: 16,
@@ -567,8 +765,6 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#3B82F6',
     },
-
-    // Sección de soporte
     soporteSection: {
         paddingHorizontal: 20,
         paddingTop: 16,
@@ -594,8 +790,6 @@ const styles = StyleSheet.create({
         color: '#3B82F6',
         fontWeight: '700',
     },
-
-    // Footer mejorado
     modalDetalleFooter: {
         padding: 16,
         paddingBottom: Platform.OS === 'ios' ? 28 : 16,

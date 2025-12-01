@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 // Configuración de la API
 const API_CONFIG = {
   // IP de tu computadora en la red local
-  LOCAL_IP: '192.168.18.43',
+  LOCAL_IP: '10.149.99.182',
   PORT: 3000,
 };
 

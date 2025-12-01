@@ -1,60 +1,94 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ModalAcercaDe from '../05_modales/ModalAcercaDe';
+import ModalSoporte from '../05_modales/ModalSoporte';
+import ModalCerrarSesion from '../05_modales/ModalCerrarSesion';
 
 const OpcionesPerfil = ({ onCerrarSesion }) => {
+    const [modalAcercaDeVisible, setModalAcercaDeVisible] = useState(false);
+    const [modalSoporteVisible, setModalSoporteVisible] = useState(false);
+    const [modalCerrarSesionVisible, setModalCerrarSesionVisible] = useState(false);
+
     return (
         <View style={styles.seccion}>
+            {/* Acerca de */}
             <TouchableOpacity
                 style={styles.opcion}
-                onPress={() => Alert.alert(
-                    'Acerca de',
-                    'ElectroStore App v1.0\n\nDesarrollada con React Native + Expo\n\n¡Gracias por usar nuestra aplicación!',
-                    [{ text: 'Cerrar', style: 'cancel' }]
-                )}
+                onPress={() => setModalAcercaDeVisible(true)}
                 activeOpacity={0.7}
             >
                 <View style={styles.opcionContenido}>
                     <View style={styles.opcionIconContainer}>
-                        <Ionicons name="information-circle-outline" size={22} color="#3B82F6" />
+                        <Ionicons name="information-circle-outline" size={20} color="#2563EB" />
                     </View>
-                    <Text style={styles.opcionTexto}>Acerca de la app</Text>
+                    <View>
+                        <Text style={styles.opcionTitulo}>Acerca de la app</Text>
+                        <Text style={styles.opcionDescripcion}>Versión, tecnología y créditos</Text>
+                    </View>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
             </TouchableOpacity>
 
+            {/* Soporte */}
             <TouchableOpacity
                 style={styles.opcion}
-                onPress={() => Alert.alert(
-                    'Soporte',
-                    '¿Necesitas ayuda?\n\nContacta con nosotros:\n\n📧 Email: soporte@tienda.com\n📞 Teléfono: +51 999 999 999',
-                    [{ text: 'Entendido', style: 'default' }]
-                )}
+                onPress={() => setModalSoporteVisible(true)}
                 activeOpacity={0.7}
             >
                 <View style={styles.opcionContenido}>
                     <View style={styles.opcionIconContainer}>
-                        <Ionicons name="headset-outline" size={22} color="#3B82F6" />
+                        <Ionicons name="headset-outline" size={20} color="#2563EB" />
                     </View>
-                    <Text style={styles.opcionTexto}>Soporte y ayuda</Text>
+                    <View>
+                        <Text style={styles.opcionTitulo}>Soporte y ayuda</Text>
+                        <Text style={styles.opcionDescripcion}>Canales de contacto y atención</Text>
+                    </View>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
             </TouchableOpacity>
 
+            {/* Cerrar sesión */}
             <TouchableOpacity
                 style={[styles.opcion, styles.opcionUltima]}
-                onPress={onCerrarSesion}
+                onPress={() => setModalCerrarSesionVisible(true)}
                 activeOpacity={0.7}
             >
                 <View style={styles.opcionContenido}>
                     <View style={[styles.opcionIconContainer, styles.opcionIconContainerRed]}>
-                        <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+                        <Ionicons name="log-out-outline" size={20} color="#EF4444" />
                     </View>
-                    <Text style={[styles.opcionTexto, styles.opcionCerrarSesion]}>
-                        Cerrar sesión
-                    </Text>
+                    <View>
+                        <Text style={[styles.opcionTitulo, styles.opcionCerrarSesion]}>
+                            Cerrar sesión
+                        </Text>
+                        <Text style={styles.opcionDescripcionRoja}>
+                            Salir de tu cuenta en este dispositivo
+                        </Text>
+                    </View>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
             </TouchableOpacity>
+
+            {/* Modales */}
+            <ModalAcercaDe
+                visible={modalAcercaDeVisible}
+                onCerrar={() => setModalAcercaDeVisible(false)}
+            />
+
+            <ModalSoporte
+                visible={modalSoporteVisible}
+                onCerrar={() => setModalSoporteVisible(false)}
+            />
+
+            <ModalCerrarSesion
+                visible={modalCerrarSesionVisible}
+                onCerrar={() => setModalCerrarSesionVisible(false)}
+                onConfirmar={() => {
+                    setModalCerrarSesionVisible(false);
+                    onCerrarSesion();
+                }}
+            />
         </View>
     );
 };
@@ -62,21 +96,23 @@ const OpcionesPerfil = ({ onCerrarSesion }) => {
 const styles = StyleSheet.create({
     seccion: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        marginBottom: 20,
+        borderRadius: 18,
+        marginBottom: 12,
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     opcion: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 16,
-        paddingHorizontal: 20,
+        paddingVertical: 14,
+        paddingHorizontal: 18,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
     },
@@ -87,6 +123,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
+        flex: 1,
     },
     opcionIconContainer: {
         width: 40,
@@ -99,14 +136,24 @@ const styles = StyleSheet.create({
     opcionIconContainerRed: {
         backgroundColor: '#FEF2F2',
     },
-    opcionTexto: {
+    opcionTitulo: {
         fontSize: 15,
-        color: '#1A1A1A',
-        fontWeight: '500',
+        color: '#111827',
+        fontWeight: '600',
+    },
+    opcionDescripcion: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 2,
     },
     opcionCerrarSesion: {
-        color: '#EF4444',
+        color: '#B91C1C',
         fontWeight: '700',
+    },
+    opcionDescripcionRoja: {
+        fontSize: 12,
+        color: '#F97373',
+        marginTop: 2,
     },
 });
 

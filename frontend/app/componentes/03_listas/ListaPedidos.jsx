@@ -76,14 +76,14 @@ const ListaPedidos = ({
                             Tienes {pedidos.length} {pedidos.length === 1 ? 'pedido' : 'pedidos'}
                         </Text>
                     </View>
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                         style={styles.botonVerTodos}
                         onPress={onToggleExpandir}
                         activeOpacity={0.8}
                     >
                         <Text style={styles.botonVerTodosTexto}>Ver todos mis pedidos</Text>
                         <Ionicons name="arrow-forward" size={18} color="#3B82F6" />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                 </View>
             )}
         </View>

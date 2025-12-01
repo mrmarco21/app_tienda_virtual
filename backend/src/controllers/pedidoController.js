@@ -6,25 +6,37 @@ export const obtenerPedidos = async (req, res) => {
     const { estado, limite = 50, pagina = 1 } = req.query;
     const offset = (pagina - 1) * limite;
 
-    let query = `
-      SELECT p.*, 
-        COUNT(dp.id) as cantidad_productos,
-        GROUP_CONCAT(CONCAT(pr.nombre, ' (x', dp.cantidad, ')') SEPARATOR ', ') as productos
-      FROM pedidos p
-      LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
-      LEFT JOIN productos pr ON dp.producto_id = pr.id
-    `;
-
+    let query = 'SELECT * FROM pedidos';
     const params = [];
+    
     if (estado) {
-      query += ' WHERE p.estado = ?';
+      query += ' WHERE estado = ?';
       params.push(estado);
     }
 
-    query += ' GROUP BY p.id ORDER BY p.fecha DESC LIMIT ? OFFSET ?';
+    query += ' ORDER BY fecha DESC LIMIT ? OFFSET ?';
     params.push(parseInt(limite), parseInt(offset));
 
     const [pedidos] = await pool.query(query, params);
+
+    // Para cada pedido, obtener sus productos
+    for (let pedido of pedidos) {
+      const [productos] = await pool.query(
+        `SELECT 
+          pr.id,
+          pr.nombre,
+          pr.precio,
+          pr.imagen,
+          pr.categoria,
+          dp.cantidad,
+          dp.subtotal
+         FROM detalle_pedido dp
+         INNER JOIN productos pr ON dp.producto_id = pr.id
+         WHERE dp.pedido_id = ?`,
+        [pedido.id]
+      );
+      pedido.productos = productos;
+    }
 
     // Contar total
     let countQuery = 'SELECT COUNT(*) as total FROM pedidos';

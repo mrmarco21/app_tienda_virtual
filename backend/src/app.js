@@ -6,6 +6,7 @@ import pedidoRoutes from './routes/pedidoRoutes.js';
 import usuarioRoutes from './routes/usuarioRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import direccionRoutes from './routes/direccionRoutes.js';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use('/api/productos', productoRoutes);
 app.use('/api/pedidos', pedidoRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/direcciones', direccionRoutes);
 app.use('/api/', uploadRoutes);
 
 // Ruta de prueba
